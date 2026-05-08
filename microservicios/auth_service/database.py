@@ -14,3 +14,11 @@ SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
 #Clase base para los modelos
 Base = declarative_base()
+
+#inyector de dependenciass
+def get_db():
+    db = SessionLocal() #abre la conexión
+    try:
+        yield db        #entrega la conexión al router para que la use
+    finally:
+        db.close()      #cierra la conexión cuando el router termine su pega
