@@ -34,12 +34,27 @@ class AuthService:
         return nuevo_usuario
     
     @staticmethod
-    def autenticar_usuario(credenciales: LoginRequest):
-        if credenciales.email == "admin@smartlogix.cl" and credenciales.password == "123":
-            return {
-                "id": 1,
-                "nombre": "Pablo Admin",
-                "rol": "administrador",
-                "token": "jwt_valido_xyz789"
-            }
-        return None
+    def autenticar_usuario(db: Session, credenciales: LoginRequest):
+        #buscamos al usuario en la db por su correo
+        usuario_db = db.query(UsuarioDB).filter(UsuarioDB.email == credenciales.email).first()
+        
+        #si no existe devolvemos none (401)
+        if not usuario_db:
+            return None
+        
+        #verificamos la pass
+        #bcrypt compara la clave ingresada (en bytes) con la clave guardada (en bytes)
+        clave_ingresada_bytes = credenciales.password.encode('utf-8')
+        clave_guardada_bytes = usuario_db.password.encode('utf-8')
+
+        if not bcrypt.checkpw(clave_ingresada_bytes, clave_guardada_bytes):
+            return None #password incorrecta xd
+        
+        #si todo esta ok armamos el paquete de respuesta
+        #TOKEN FALSO POR AHORA (DESPUES USAMOS JWT)
+        return {
+            "id": usuario_db.id,
+            "nombre": usuario_db.nombre,
+            "rol": usuario_db.rol,
+            "token": "Token falsete mientras implementamos JWT"
+        }
