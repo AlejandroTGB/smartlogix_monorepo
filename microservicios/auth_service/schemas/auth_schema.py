@@ -23,7 +23,7 @@ class LoginResponse(BaseModel):
     rol: str
     token: str
 
-class RegisterResponse(BaseModel):
+class UsuarioResponse(BaseModel):
     id: int
     email: EmailStr
     nombre: str
