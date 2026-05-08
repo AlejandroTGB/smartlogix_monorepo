@@ -1,0 +1,20 @@
+version: "3.8"
+
+services:
+  db_auth:
+    image: postgres:15
+    container_name: smartlogix_postgres_auth
+    restart: always
+    environment:
+      #credenciales database.py
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: db_auth
+    ports:
+      - "5432:5432"
+    volumes:
+      #para persistencia de datos
+      - postgres_data:/var/lib/postgresql/data
+
+volumes:
+  postgres_data:
