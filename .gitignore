@@ -1,0 +1,57 @@
+# =========================
+# 1. PYTHON (FastAPI)
+# =========================
+
+# Entornos virtuales
+venv/
+env/
+
+.venv/
+# Caché Python
+__pycache__/
+*.py[cod]
+*$py.class
+.pytest_cache/
+
+# Typing/Lint/Format caches
+.mypy_cache/
+.ruff_cache/
+
+# Coverage
+.coverage
+htmlcov/
+coverage.xml
+
+
+# =========================
+# 2. NODE.JS (React / Vite)
+# =========================
+
+#wea pesada
+node_modules/
+dist/
+dist-ssr/
+.npm/
+
+# Tooling caches
+.vite/
+.eslintcache
+
+# Coverage
+coverage/
+
+# =========================
+# 3. VARIABLES DE ENTORNO Y SECRETOS
+# =========================
+.env
+.env.local
+.env.*.local
+
+# Logs
+*.log
+
+# =========================
+# 4. SISTEMA OPERATIVO Y OTROS
+# =========================
+.DS_Store
+Thumbs.db
