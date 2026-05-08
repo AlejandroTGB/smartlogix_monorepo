@@ -1,7 +1,12 @@
 from fastapi import FastAPI
 from scalar_fastapi import get_scalar_api_reference
-from fastapi.responses import HTMLResponse
 from routers.auth_router import router as rutas_autenticacion
+from database import engine
+import models.user_model
+
+# Esta línea va a Postgres y le dice: 
+# "Revisa mis modelos y crea las tablas que falten"
+models.user_model.Base.metadata.create_all(bind=engine)
 
 app = FastAPI(
     title="SmartLogix - Servicio de Autenticación",
