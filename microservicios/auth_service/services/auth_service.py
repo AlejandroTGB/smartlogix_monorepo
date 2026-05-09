@@ -2,6 +2,7 @@ import bcrypt
 from sqlalchemy.orm import Session
 from models.user_model import UsuarioDB
 from schemas.auth_schema import LoginRequest, RegisterRequest
+from core.security import crear_token_acceso
 
 class AuthService:
     @staticmethod
@@ -51,10 +52,19 @@ class AuthService:
             return None #password incorrecta xd
         
         #si todo esta ok armamos el paquete de respuesta
-        #TOKEN FALSO POR AHORA (DESPUES USAMOS JWT)
+        #Generacion de token JWT
+        #sub= de quien es el token en este caso el usario, id= para identificarlo univocamente, rol= para manejar autorizaciones en el futuro
+        datos_token = {
+            "sub": usuario_db.email,
+            "id": usuario_db.id,
+            "rol": usuario_db.rol
+        }
+        token_acceso = crear_token_acceso(datos_token)
+
+
         return {
             "id": usuario_db.id,
             "nombre": usuario_db.nombre,
             "rol": usuario_db.rol,
-            "token": "Token falsete mientras implementamos JWT"
+            "token": token_acceso
         }
