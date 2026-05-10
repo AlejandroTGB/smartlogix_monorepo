@@ -1,20 +1,33 @@
 version: "3.8"
 
 services:
+  # contenedor de la db
   db_auth:
     image: postgres:15
     container_name: smartlogix_postgres_auth
     restart: always
     environment:
-      #credenciales database.py
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: postgres
       POSTGRES_DB: db_auth
     ports:
       - "5432:5432"
     volumes:
-      #para persistencia de datos
-      - postgres_data:/var/lib/postgresql/data
+      - postgres_data_auth:/var/lib/postgresql/data
+
+  # contenedor del microservicio fastapi
+  api_auth:
+    build:
+      context: ./microservicios/auth_service
+    container_name: smartlogix_api_auth
+    restart: always
+    ports:
+      - "8000:8000"
+    # leer variables JWT_SECRET_KEY y JWT_ALGORITHM del archivo .env
+    env_file:
+      - ./microservicios/auth_service/.env
+    depends_on:
+      - db_auth
 
 volumes:
-  postgres_data:
+  postgres_data_auth:
