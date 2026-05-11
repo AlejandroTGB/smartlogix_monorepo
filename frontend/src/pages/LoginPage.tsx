@@ -2,7 +2,7 @@ import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { login as loginApi } from "../api/auth";
 import { useAuthStore } from "../stores/authStore";
 const loginSchema = z.object({
@@ -13,6 +13,7 @@ type LoginForm = z.infer<typeof loginSchema>;
 export default function LoginPage() {
   const login = useAuthStore((state) => state.login);
   const [serverError, setServerError] = useState("");
+  const navigate = useNavigate();
   const {
     register: fieldRegister,
     handleSubmit,
@@ -28,7 +29,7 @@ export default function LoginPage() {
         { id: authData.id, nombre: authData.nombre, rol: authData.rol },
         authData.token,
       );
-      // TODO: redirigir al dashboard con React Router
+      navigate("/dashboard");
     } catch (err: any) {
       setServerError(err.response?.data?.detail || "Credenciales incorrectas");
     }

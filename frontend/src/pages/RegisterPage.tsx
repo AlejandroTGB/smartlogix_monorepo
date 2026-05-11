@@ -2,9 +2,9 @@ import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
+import { Link, useNavigate } from "react-router-dom";
 import { register as registerUser, login as loginApi } from "../api/auth";
 import { useAuthStore } from "../stores/authStore";
-import { Link } from "react-router-dom";
 const registerSchema = z.object({
   nombre: z.string().min(2, "El nombre debe tener al menos 2 caracteres"),
   email: z.string().email("Correo electrónico inválido"),
@@ -17,6 +17,7 @@ type RegisterForm = z.infer<typeof registerSchema>;
 export default function RegisterPage() {
   const login = useAuthStore((state) => state.login);
   const [serverError, setServerError] = useState("");
+  const navigate = useNavigate();
   const {
     register: fieldRegister,
     handleSubmit,
@@ -49,7 +50,7 @@ export default function RegisterPage() {
         { id: authData.id, nombre: authData.nombre, rol: authData.rol },
         authData.token,
       );
-      // TODO: redirigir al dashboard con React Router
+      navigate("/dashboard");
     } catch (err: any) {
       setServerError(err.response?.data?.detail || "Error al crear la cuenta");
     }
@@ -219,7 +220,7 @@ export default function RegisterPage() {
               <div className="flex items-start gap-3 py-2">
                 <input
                   type="checkbox"
-                  {...fieldRegister("acceptTerms", { required: true })}
+                  {...fieldRegister("acceptTerms")}
                   className="h-4 w-4 rounded border-outline-variant text-secondary cursor-pointer mt-0.5 accent-[#006c49]"
                 />
                 <label className="text-sm text-on-surface-variant leading-tight">
