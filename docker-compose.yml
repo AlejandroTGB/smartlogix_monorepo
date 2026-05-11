@@ -110,6 +110,24 @@ services:
     depends_on:
       - db_envios
 
+  #============================
+  # API GATEWAY
+  #============================
+  gateway:
+    build:
+      context: ./api_gateway
+    container_name: smartlogix_api_gateway
+    restart: always
+    ports:
+      - "8080:8080"
+    env_file:
+      - ./microservicios/auth_service/.env
+    depends_on:
+      - api_auth
+      - api_inventario
+      - api_pedidos
+      - api_envios
+
 volumes:
   postgres_data_auth:
   postgres_data_inv:
