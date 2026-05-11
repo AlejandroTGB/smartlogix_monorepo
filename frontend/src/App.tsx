@@ -6,6 +6,7 @@ import LoginPage from "./pages/LoginPage";
 import DashboardPage from "./pages/DashboardPage";
 import InventarioPage from "./pages/InventarioPage";
 import PedidosPage from "./pages/PedidosPage";
+import EnviosPage from "./pages/EnviosPage";
 
 function App() {
   return (
@@ -24,14 +25,7 @@ function App() {
         <Route path="/dashboard" element={<DashboardPage />} />
         <Route path="/inventario" element={<InventarioPage />} />
         <Route path="/pedidos" element={<PedidosPage />} />
-        <Route
-          path="/envios"
-          element={
-            <div className="text-2xl font-headline font-bold">
-              Envíos (en construcción)
-            </div>
-          }
-        />
+        <Route path="/envios" element={<EnviosPage />} />
       </Route>
       {/* Redirección por defecto */}
       <Route path="*" element={<Navigate to="/login" replace />} />
