@@ -1,6 +1,9 @@
 version: "3.8"
 
 services:
+  #============================
+  # AUTH SERVICE
+  #============================
   # contenedor de la db
   db_auth:
     image: postgres:15
@@ -15,7 +18,7 @@ services:
     volumes:
       - postgres_data_auth:/var/lib/postgresql/data
 
-  # contenedor del microservicio fastapi
+  # contenedor del microservicio fastapi AUTH
   api_auth:
     build:
       context: ./microservicios/auth_service
@@ -29,5 +32,32 @@ services:
     depends_on:
       - db_auth
 
+  #============================
+  # INVENTARIO SERVICE
+  #============================
+  db_inventario:
+    image: postgres:15
+    container_name: smartlogix_postgres_inv
+    restart: always
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: db_inventario
+    ports:
+      - "5433:5432" #5433 para que no choque con la db de Auth
+    volumes:
+      - postgres_data_inv:/var/lib/postgresql/data
+
+  api_inventario:
+    build:
+      context: ./microservicios/inventario_service
+    container_name: smartlogix_api_inventario
+    restart: always
+    ports:
+      - "8001:8000" #8001 para que no choque con el puerto
+    depends_on:
+      - db_inventario
+
 volumes:
   postgres_data_auth:
+  postgres_data_inv:
