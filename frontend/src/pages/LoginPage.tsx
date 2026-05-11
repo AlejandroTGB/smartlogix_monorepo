@@ -2,48 +2,27 @@ import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { register as registerUser, login as loginApi } from "../api/auth";
-import { useAuthStore } from "../stores/authStore";
 import { Link } from "react-router-dom";
-const registerSchema = z.object({
-  nombre: z.string().min(2, "El nombre debe tener al menos 2 caracteres"),
+import { login as loginApi } from "../api/auth";
+import { useAuthStore } from "../stores/authStore";
+const loginSchema = z.object({
   email: z.string().email("Correo electrónico inválido"),
-  password: z.string().min(8, "La contraseña debe tener al menos 8 caracteres"),
-  acceptTerms: z.boolean().refine((val) => val === true, {
-    message: "Debes aceptar los términos y condiciones",
-  }),
+  password: z.string().min(1, "Ingresa tu contraseña"),
 });
-type RegisterForm = z.infer<typeof registerSchema>;
-export default function RegisterPage() {
+type LoginForm = z.infer<typeof loginSchema>;
+export default function LoginPage() {
   const login = useAuthStore((state) => state.login);
   const [serverError, setServerError] = useState("");
   const {
     register: fieldRegister,
     handleSubmit,
-    watch,
     formState: { errors, isSubmitting },
-  } = useForm<RegisterForm>({
-    resolver: zodResolver(registerSchema),
+  } = useForm<LoginForm>({
+    resolver: zodResolver(loginSchema),
   });
-  const password = watch("password", "");
-  const getStrengthLevel = () => {
-    if (password.length < 4) return { label: "Baja", color: "text-error" };
-    if (password.length < 8)
-      return { label: "Media", color: "text-tertiary-fixed-dim" };
-    if (password.length < 12)
-      return { label: "Media-Alta", color: "text-secondary" };
-    return { label: "Alta", color: "text-secondary" };
-  };
-  const getStrengthBars = () => [
-    password.length > 0,
-    password.length >= 4,
-    password.length >= 8,
-    password.length >= 12,
-  ];
-  const onSubmit = async (data: RegisterForm) => {
+  const onSubmit = async (data: LoginForm) => {
     setServerError("");
     try {
-      await registerUser(data.email, data.password, data.nombre);
       const authData = await loginApi(data.email, data.password);
       login(
         { id: authData.id, nombre: authData.nombre, rol: authData.rol },
@@ -51,10 +30,9 @@ export default function RegisterPage() {
       );
       // TODO: redirigir al dashboard con React Router
     } catch (err: any) {
-      setServerError(err.response?.data?.detail || "Error al crear la cuenta");
+      setServerError(err.response?.data?.detail || "Credenciales incorrectas");
     }
   };
-  const strength = password.length > 0 ? getStrengthLevel() : null;
   return (
     <div className="min-h-screen bg-surface font-body text-on-surface flex flex-col antialiased">
       <main className="flex-1 flex items-center justify-center p-4 lg:p-12">
@@ -75,11 +53,11 @@ export default function RegisterPage() {
               </div>
               <div className="space-y-6 max-w-md">
                 <h1 className="font-headline font-extrabold text-5xl lg:text-6xl leading-tight">
-                  La precisión es nuestra lógica
+                  Bienvenido de vuelta
                 </h1>
                 <p className="text-white/80 text-lg leading-relaxed">
-                  Únete a la red logística más avanzada del mercado. Optimiza
-                  cada movimiento con inteligencia de datos en tiempo real.
+                  Gestiona tus envíos, controla tu inventario y optimiza cada
+                  movimiento logístico desde un solo lugar.
                 </p>
               </div>
             </div>
@@ -99,8 +77,8 @@ export default function RegisterPage() {
                   </div>
                 </div>
                 <p className="mt-4 text-sm italic text-white/90">
-                  "Smart Logix ha transformado nuestra cadena de suministro en
-                  un motor de eficiencia impecable."
+                  "La visibilidad en tiempo real que nos da Smart Logix es
+                  incomparable."
                 </p>
               </div>
             </div>
@@ -121,10 +99,10 @@ export default function RegisterPage() {
             </div>
             <div className="mb-10">
               <h2 className="font-headline font-bold text-3xl text-primary mb-2">
-                Comienza ahora
+                Inicia sesión
               </h2>
               <p className="text-on-surface-variant font-medium">
-                Regístrate para gestionar tus flujos logísticos con precisión.
+                Accede a tu plataforma de gestión logística.
               </p>
             </div>
             {serverError && (
@@ -133,22 +111,6 @@ export default function RegisterPage() {
               </div>
             )}
             <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
-              {/* Nombre */}
-              <div className="space-y-2">
-                <label className="block font-label text-xs uppercase tracking-wider text-on-surface-variant font-bold">
-                  Nombre completo
-                </label>
-                <input
-                  {...fieldRegister("nombre")}
-                  className={`w-full px-4 py-3 bg-surface-container-low border-0 rounded-lg focus:ring-2 focus:ring-primary text-sm transition-all placeholder:text-outline/50 outline-none ${errors.nombre ? "ring-2 ring-error" : ""}`}
-                  placeholder="Tu nombre completo"
-                />
-                {errors.nombre && (
-                  <p className="text-error text-xs font-bold">
-                    {errors.nombre.message}
-                  </p>
-                )}
-              </div>
               {/* Email */}
               <div className="space-y-2">
                 <label className="block font-label text-xs uppercase tracking-wider text-on-surface-variant font-bold">
@@ -187,81 +149,29 @@ export default function RegisterPage() {
                     placeholder="••••••••••••"
                   />
                 </div>
-                <div className="mt-3 space-y-2">
-                  <div className="flex gap-1 h-1.5 w-full">
-                    {getStrengthBars().map((active, i) => (
-                      <div
-                        key={i}
-                        className={`rounded-full flex-1 ${active ? "bg-secondary-fixed-dim" : "bg-surface-container-highest"}`}
-                      />
-                    ))}
-                  </div>
-                  <div className="flex justify-between items-center">
-                    {strength && (
-                      <span
-                        className={`text-[10px] font-bold uppercase tracking-widest ${strength.color}`}
-                      >
-                        Seguridad: {strength.label}
-                      </span>
-                    )}
-                    <span className="text-[10px] text-on-surface-variant italic">
-                      Mínimo 8 caracteres
-                    </span>
-                  </div>
-                </div>
                 {errors.password && (
                   <p className="text-error text-xs font-bold">
                     {errors.password.message}
                   </p>
                 )}
               </div>
-              {/* Terms */}
-              <div className="flex items-start gap-3 py-2">
-                <input
-                  type="checkbox"
-                  {...fieldRegister("acceptTerms", { required: true })}
-                  className="h-4 w-4 rounded border-outline-variant text-secondary cursor-pointer mt-0.5 accent-[#006c49]"
-                />
-                <label className="text-sm text-on-surface-variant leading-tight">
-                  Acepto los{" "}
-                  <a
-                    href="#"
-                    className="text-primary font-bold hover:underline"
-                  >
-                    términos y condiciones
-                  </a>{" "}
-                  y la{" "}
-                  <a
-                    href="#"
-                    className="text-primary font-bold hover:underline"
-                  >
-                    política de privacidad
-                  </a>{" "}
-                  de Smart Logix.
-                </label>
-              </div>
-              {errors.acceptTerms && (
-                <p className="text-error text-xs font-bold">
-                  {errors.acceptTerms.message}
-                </p>
-              )}
               {/* Submit */}
               <button
                 type="submit"
                 disabled={isSubmitting}
                 className="w-full py-4 bg-gradient-to-r from-secondary to-on-secondary-fixed-variant text-white font-headline font-bold rounded-xl shadow-lg shadow-secondary/20 hover:scale-[1.01] active:scale-[0.98] transition-all text-center cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                {isSubmitting ? "Creando cuenta..." : "Crear mi cuenta"}
+                {isSubmitting ? "Ingresando..." : "Iniciar sesión"}
               </button>
-              {/* Login Link */}
+              {/* Register Link */}
               <div className="pt-6 text-center border-t border-surface-container-high mt-8">
                 <p className="text-sm text-on-surface-variant">
-                  ¿Ya tienes una cuenta?{" "}
+                  ¿No tienes una cuenta?{" "}
                   <Link
-                    to="/login"
+                    to="/registro"
                     className="text-secondary font-bold hover:text-on-secondary-fixed-variant transition-colors ml-1"
                   >
-                    Inicia sesión aquí
+                    Regístrate aquí
                   </Link>
                 </p>
               </div>
