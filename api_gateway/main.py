@@ -12,7 +12,9 @@ ALGORITHM = "HS256"
 
 RUTAS_SERVICIOS = {
     "auth": "http://api_auth:8000",
-    "inventario": "http://api_inventario:8000"
+    "inventario": "http://api_inventario:8000",
+    "pedidos": "http://api_pedidos:8000",
+    "envios": "http://api_envios:8000"
 }
 
 @app.api_route("/{path:path}", methods=["GET", "POST", "PUT", "DELETE"])
@@ -31,8 +33,10 @@ async def enrutador_principal(request: Request, path: str):
     if not servicio_destino:
         raise HTTPException(status_code=404, detail="No se pudo determinar el servicio de destino")
 
-    # 2. Seguridad (Solo para Inventario y métodos de escritura)
-    if servicio_destino == "inventario" and request.method in ["POST", "PUT", "DELETE"]:
+    # 2. Seguridad
+    servicios_protegidos = ["inventario", "pedidos", "envios"]
+
+    if servicio_destino in servicios_protegidos and request.method in ["POST", "PUT", "DELETE"]:
         auth_header = request.headers.get("Authorization")
         if not auth_header:
             raise HTTPException(status_code=401, detail="Token requerido")
