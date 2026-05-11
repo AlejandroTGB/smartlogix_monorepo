@@ -1,42 +1,14 @@
+import { useEffect, useState } from "react";
+import { getProductos, type Producto } from "../api/inventario";
 export default function InventarioPage() {
-  const products = [
-    {
-      sku: "SL-X942-A",
-      name: "SmartHub Terminal Gen 2",
-      category: "Electrónica / IoT",
-      stock: 420,
-      stockPercent: 70,
-      price: "€249.00",
-      lowStock: false,
-    },
-    {
-      sku: "SL-B102-L",
-      name: "Sensor Precision L3",
-      category: "Sensores / Óptica",
-      stock: 8,
-      stockPercent: 15,
-      price: "€89.50",
-      lowStock: true,
-    },
-    {
-      sku: "SL-W450-Z",
-      name: "Brazo Articulado Alpha",
-      category: "Robótica / Mecánica",
-      stock: 156,
-      stockPercent: 45,
-      price: "€1,120.00",
-      lowStock: false,
-    },
-    {
-      sku: "SL-K221-M",
-      name: "Controlador Térmico Pro",
-      category: "Energía",
-      stock: 32,
-      stockPercent: 25,
-      price: "€412.00",
-      lowStock: false,
-    },
-  ];
+  const [productos, setProductos] = useState<Producto[]>([]);
+  const [loading, setLoading] = useState(true);
+  useEffect(() => {
+    getProductos()
+      .then(setProductos)
+      .catch(console.error)
+      .finally(() => setLoading(false));
+  }, []);
   return (
     <div className="space-y-10">
       {/* Header */}
@@ -56,10 +28,10 @@ export default function InventarioPage() {
           </p>
           <div className="flex items-baseline gap-2">
             <span className="text-3xl font-extrabold font-headline text-primary">
-              1.284
+              {productos.length}
             </span>
             <span className="text-[10px] font-bold text-secondary flex items-center">
-              +12 este mes
+              Productos registrados
             </span>
           </div>
         </div>
@@ -69,7 +41,7 @@ export default function InventarioPage() {
           </p>
           <div className="flex items-baseline gap-2">
             <span className="text-3xl font-extrabold font-headline text-error">
-              18
+              {productos.filter((p) => p.stock < 10).length}
             </span>
             <span className="text-[10px] font-bold text-error flex items-center">
               Revisión urgente
@@ -82,24 +54,27 @@ export default function InventarioPage() {
           </p>
           <div className="flex items-baseline gap-2">
             <span className="text-3xl font-extrabold font-headline text-primary">
-              €4.2M
+              $
+              {productos
+                .reduce((acc, p) => acc + p.precio * p.stock, 0)
+                .toLocaleString("es-CL")}
             </span>
             <span className="text-[10px] font-bold text-on-surface-variant">
-              EUR
+              CLP
             </span>
           </div>
         </div>
         <div className="bg-surface-container-low p-6 rounded-xl group hover:bg-surface-container-high transition-all">
           <p className="text-[10px] font-bold text-on-surface-variant uppercase tracking-wider mb-2">
-            Capacidad
+            Stock Total
           </p>
           <div className="flex items-baseline gap-2">
             <span className="text-3xl font-extrabold font-headline text-primary">
-              82%
+              {productos.reduce((acc, p) => acc + p.stock, 0)}
             </span>
-            <div className="flex-1 h-1.5 bg-outline-variant/30 rounded-full ml-4 overflow-hidden">
-              <div className="bg-primary h-full w-[82%]" />
-            </div>
+            <span className="text-[10px] font-bold text-on-surface-variant">
+              Unidades
+            </span>
           </div>
         </div>
       </div>
@@ -134,134 +109,97 @@ export default function InventarioPage() {
           </button>
         </div>
         {/* Table */}
-        <div className="overflow-x-auto">
-          <table className="w-full border-separate border-spacing-y-1">
-            <thead className="bg-surface-container-low">
-              <tr>
-                <th className="w-12 py-4 pl-6 text-left rounded-l-lg">
-                  <input
-                    className="w-4 h-4 rounded border-outline-variant"
-                    type="checkbox"
-                  />
-                </th>
-                <th className="px-4 py-4 text-left text-[10px] font-bold text-on-surface-variant uppercase tracking-wider">
-                  SKU
-                </th>
-                <th className="px-4 py-4 text-left text-[10px] font-bold text-on-surface-variant uppercase tracking-wider">
-                  Nombre del Producto
-                </th>
-                <th className="px-4 py-4 text-left text-[10px] font-bold text-on-surface-variant uppercase tracking-wider">
-                  Categoría
-                </th>
-                <th className="px-4 py-4 text-left text-[10px] font-bold text-on-surface-variant uppercase tracking-wider">
-                  Stock Disponible
-                </th>
-                <th className="px-4 py-4 text-left text-[10px] font-bold text-on-surface-variant uppercase tracking-wider">
-                  Precio Unitario
-                </th>
-                <th className="px-4 py-4 text-right pr-6 text-[10px] font-bold text-on-surface-variant uppercase tracking-wider rounded-r-lg">
-                  Acciones
-                </th>
-              </tr>
-            </thead>
-            <tbody>
-              {products.map((product) => (
-                <tr
-                  key={product.sku}
-                  className="group hover:bg-surface-container-low transition-colors"
-                >
-                  <td className="py-3 pl-6 rounded-l-lg">
-                    <input
-                      className="w-4 h-4 rounded border-outline-variant"
-                      type="checkbox"
-                    />
-                  </td>
-                  <td className="px-4 py-3 text-xs font-mono font-bold text-on-surface">
-                    {product.sku}
-                  </td>
-                  <td className="px-4 py-3 text-xs font-semibold text-on-surface">
-                    {product.name}
-                  </td>
-                  <td className="px-4 py-3 text-xs text-on-surface-variant">
-                    {product.category}
-                  </td>
-                  <td className="px-4 py-3">
-                    <div className="flex items-center gap-2">
-                      <span
-                        className={`text-xs font-bold ${product.lowStock ? "text-error font-extrabold" : "text-on-surface"}`}
-                      >
-                        {product.stock}
-                      </span>
-                      <div className="w-16 h-1 bg-outline-variant/20 rounded-full overflow-hidden">
-                        <div
-                          className={`h-full rounded-full ${product.lowStock ? "bg-error" : "bg-secondary"}`}
-                          style={{ width: `${product.stockPercent}%` }}
-                        />
-                      </div>
-                      {product.lowStock && (
-                        <span className="text-[9px] px-1.5 py-0.5 bg-error-container text-on-error-container rounded font-bold uppercase">
-                          Bajo
-                        </span>
-                      )}
-                    </div>
-                  </td>
-                  <td className="px-4 py-3 text-xs font-bold text-on-surface">
-                    {product.price}
-                  </td>
-                  <td className="px-4 py-3 text-right pr-6 rounded-r-lg">
-                    <div className="flex items-center justify-end gap-2">
-                      <button className="p-1.5 text-on-surface-variant hover:text-primary transition-colors cursor-pointer">
-                        <span className="material-symbols-outlined text-lg">
-                          edit_note
-                        </span>
-                      </button>
-                      <button className="p-1.5 text-on-surface-variant hover:text-error transition-colors cursor-pointer">
-                        <span className="material-symbols-outlined text-lg">
-                          delete
-                        </span>
-                      </button>
-                    </div>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-        {/* Pagination */}
-        <div className="flex items-center justify-between p-6 border-t border-surface-container-high/10">
-          <p className="text-xs text-on-surface-variant font-medium">
-            Mostrando <span className="font-bold text-on-surface">1 - 4</span>{" "}
-            de <span className="font-bold text-on-surface">1,284</span>{" "}
-            resultados
-          </p>
-          <div className="flex items-center gap-2">
-            <button className="p-2 bg-surface-container-low rounded-lg text-on-surface hover:bg-surface-container-high transition-colors cursor-pointer">
-              <span className="material-symbols-outlined text-sm">
-                chevron_left
-              </span>
-            </button>
-            <div className="flex items-center gap-1">
-              <button className="w-8 h-8 flex items-center justify-center text-xs font-bold bg-primary text-white rounded-lg cursor-pointer">
-                1
-              </button>
-              <button className="w-8 h-8 flex items-center justify-center text-xs font-bold text-on-surface-variant hover:bg-surface-container-low rounded-lg transition-colors cursor-pointer">
-                2
-              </button>
-              <button className="w-8 h-8 flex items-center justify-center text-xs font-bold text-on-surface-variant hover:bg-surface-container-low rounded-lg transition-colors cursor-pointer">
-                3
-              </button>
-              <span className="px-2 text-xs text-on-surface-variant">...</span>
-              <button className="w-8 h-8 flex items-center justify-center text-xs font-bold text-on-surface-variant hover:bg-surface-container-low rounded-lg transition-colors cursor-pointer">
-                321
-              </button>
-            </div>
-            <button className="p-2 bg-surface-container-low rounded-lg text-on-surface hover:bg-surface-container-high transition-colors cursor-pointer">
-              <span className="material-symbols-outlined text-sm">
-                chevron_right
-              </span>
-            </button>
+        {loading ? (
+          <div className="flex justify-center items-center py-20">
+            <span className="material-symbols-outlined text-4xl text-on-surface-variant animate-spin">
+              progress_activity
+            </span>
           </div>
-        </div>
+        ) : productos.length === 0 ? (
+          <div className="flex flex-col items-center justify-center py-20 text-on-surface-variant">
+            <span className="material-symbols-outlined text-5xl mb-4">
+              inventory_2
+            </span>
+            <p className="text-lg font-bold">No hay productos registrados</p>
+            <p className="text-sm">Agregá el primer producto para comenzar.</p>
+          </div>
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="w-full border-separate border-spacing-y-1">
+              <thead className="bg-surface-container-low">
+                <tr>
+                  <th className="px-6 py-4 text-left text-[10px] font-bold text-on-surface-variant uppercase tracking-wider rounded-l-lg">
+                    ID
+                  </th>
+                  <th className="px-4 py-4 text-left text-[10px] font-bold text-on-surface-variant uppercase tracking-wider">
+                    Nombre
+                  </th>
+                  <th className="px-4 py-4 text-left text-[10px] font-bold text-on-surface-variant uppercase tracking-wider">
+                    Descripción
+                  </th>
+                  <th className="px-4 py-4 text-left text-[10px] font-bold text-on-surface-variant uppercase tracking-wider">
+                    Stock Disponible
+                  </th>
+                  <th className="px-4 py-4 text-left text-[10px] font-bold text-on-surface-variant uppercase tracking-wider">
+                    Precio
+                  </th>
+                  <th className="px-4 py-4 text-right pr-6 text-[10px] font-bold text-on-surface-variant uppercase tracking-wider rounded-r-lg">
+                    Acciones
+                  </th>
+                </tr>
+              </thead>
+              <tbody>
+                {productos.map((producto) => (
+                  <tr
+                    key={producto.id}
+                    className="group hover:bg-surface-container-low transition-colors"
+                  >
+                    <td className="px-6 py-3 rounded-l-lg text-xs font-mono font-bold text-on-surface">
+                      #{producto.id}
+                    </td>
+                    <td className="px-4 py-3 text-xs font-semibold text-on-surface">
+                      {producto.nombre}
+                    </td>
+                    <td className="px-4 py-3 text-xs text-on-surface-variant">
+                      {producto.descripcion || "—"}
+                    </td>
+                    <td className="px-4 py-3">
+                      <div className="flex items-center gap-2">
+                        <span
+                          className={`text-xs font-bold ${producto.stock < 10 ? "text-error font-extrabold" : "text-on-surface"}`}
+                        >
+                          {producto.stock}
+                        </span>
+                        {producto.stock < 10 && (
+                          <span className="text-[9px] px-1.5 py-0.5 bg-error-container text-on-error-container rounded font-bold uppercase">
+                            Bajo
+                          </span>
+                        )}
+                      </div>
+                    </td>
+                    <td className="px-4 py-3 text-xs font-bold text-on-surface">
+                      ${producto.precio.toLocaleString("es-CL")}
+                    </td>
+                    <td className="px-4 py-3 text-right pr-6 rounded-r-lg">
+                      <div className="flex items-center justify-end gap-2">
+                        <button className="p-1.5 text-on-surface-variant hover:text-primary transition-colors cursor-pointer">
+                          <span className="material-symbols-outlined text-lg">
+                            edit_note
+                          </span>
+                        </button>
+                        <button className="p-1.5 text-on-surface-variant hover:text-error transition-colors cursor-pointer">
+                          <span className="material-symbols-outlined text-lg">
+                            delete
+                          </span>
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
       </div>
       {/* Sync Info */}
       <div className="bg-primary-container p-6 rounded-xl flex items-center justify-between">
@@ -276,14 +214,11 @@ export default function InventarioPage() {
               Sincronización de Inventario Activa
             </h4>
             <p className="text-on-primary-container text-xs">
-              La última sincronización con el almacén central fue hace 3
-              minutos.
+              Los datos se actualizan en tiempo real desde el servicio de
+              inventario.
             </p>
           </div>
         </div>
-        <button className="text-xs font-bold text-on-primary bg-white/5 hover:bg-white/10 px-4 py-2 rounded-lg transition-all border border-white/10 cursor-pointer">
-          Ver Historial de Cambios
-        </button>
       </div>
     </div>
   );
