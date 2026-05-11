@@ -3,8 +3,10 @@ import {
   createProducto,
   deleteProducto,
   getProductos,
+  updateProducto,
   type Producto,
   type ProductoCreate,
+  type ProductoUpdate,
 } from "../api/inventario";
 
 const productoInicial = {
@@ -25,6 +27,11 @@ export default function InventarioPage() {
     useState<Producto | null>(null);
   const [eliminandoProducto, setEliminandoProducto] = useState(false);
   const [errorEliminar, setErrorEliminar] = useState("");
+  const [productoParaEditar, setProductoParaEditar] =
+    useState<Producto | null>(null);
+  const [productoEditado, setProductoEditado] = useState(productoInicial);
+  const [guardandoEdicion, setGuardandoEdicion] = useState(false);
+  const [errorEdicion, setErrorEdicion] = useState("");
 
   useEffect(() => {
     getProductos()
@@ -117,6 +124,90 @@ export default function InventarioPage() {
       );
     } finally {
       setEliminandoProducto(false);
+    }
+  };
+
+  const abrirModalEditar = (producto: Producto) => {
+    setProductoParaEditar(producto);
+    setProductoEditado({
+      nombre: producto.nombre,
+      descripcion: producto.descripcion || "",
+      precio: String(producto.precio),
+      stock: String(producto.stock),
+    });
+    setErrorEdicion("");
+  };
+
+  const cerrarModalEditar = () => {
+    if (guardandoEdicion) return;
+    setProductoParaEditar(null);
+    setProductoEditado(productoInicial);
+    setErrorEdicion("");
+  };
+
+  const actualizarCampoEdicion = (
+    campo: keyof typeof productoInicial,
+    valor: string,
+  ) => {
+    setProductoEditado((producto) => ({
+      ...producto,
+      [campo]: valor,
+    }));
+  };
+
+  const guardarEdicionProducto = async (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    if (!productoParaEditar) return;
+
+    setErrorEdicion("");
+
+    const productoParaActualizar: ProductoUpdate = {
+      nombre: productoEditado.nombre.trim(),
+      descripcion: productoEditado.descripcion.trim() || null,
+      precio: Number(productoEditado.precio),
+      stock: Number(productoEditado.stock),
+    };
+
+    if (!productoParaActualizar.nombre) {
+      setErrorEdicion("El nombre del producto es obligatorio.");
+      return;
+    }
+
+    if (
+      productoParaActualizar.precio <= 0 ||
+      Number.isNaN(productoParaActualizar.precio)
+    ) {
+      setErrorEdicion("El precio debe ser mayor a 0.");
+      return;
+    }
+
+    if (
+      productoParaActualizar.stock < 0 ||
+      Number.isNaN(productoParaActualizar.stock)
+    ) {
+      setErrorEdicion("El stock no puede ser negativo.");
+      return;
+    }
+
+    try {
+      setGuardandoEdicion(true);
+      const productoActualizado = await updateProducto(
+        productoParaEditar.id,
+        productoParaActualizar,
+      );
+      setProductos((productosActuales) =>
+        productosActuales.map((producto) =>
+          producto.id === productoActualizado.id ? productoActualizado : producto,
+        ),
+      );
+      cerrarModalEditar();
+    } catch (error) {
+      console.error(error);
+      setErrorEdicion(
+        "No se pudo editar el producto. Verifica permisos o datos ingresados.",
+      );
+    } finally {
+      setGuardandoEdicion(false);
     }
   };
 
@@ -297,7 +388,11 @@ export default function InventarioPage() {
                     </td>
                     <td className="px-4 py-3 text-right pr-6 rounded-r-lg">
                       <div className="flex items-center justify-end gap-2">
-                        <button className="p-1.5 text-on-surface-variant hover:text-primary transition-colors cursor-pointer">
+                        <button
+                          className="p-1.5 text-on-surface-variant hover:text-primary transition-colors cursor-pointer"
+                          onClick={() => abrirModalEditar(producto)}
+                          type="button"
+                        >
                           <span className="material-symbols-outlined text-lg">
                             edit_note
                           </span>
@@ -477,6 +572,152 @@ export default function InventarioPage() {
                     <span className="material-symbols-outlined text-lg">add</span>
                   )}
                   Guardar producto
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+      {productoParaEditar && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 px-4 py-8 backdrop-blur-[2px]">
+          <div className="w-full max-w-lg rounded-xl bg-surface-container-lowest shadow-2xl shadow-black/20">
+            <div className="flex items-start justify-between gap-4 border-b border-outline-variant px-6 py-5">
+              <div>
+                <h3 className="font-headline text-lg font-extrabold text-on-surface">
+                  Editar producto
+                </h3>
+                <p className="mt-1 text-xs text-on-surface-variant">
+                  Actualiza los datos del producto seleccionado.
+                </p>
+              </div>
+              <button
+                aria-label="Cerrar modal"
+                className="rounded-lg p-2 text-on-surface-variant transition-colors hover:bg-surface-container-low hover:text-on-surface"
+                onClick={cerrarModalEditar}
+                type="button"
+              >
+                <span className="material-symbols-outlined text-xl">close</span>
+              </button>
+            </div>
+
+            <form
+              className="space-y-5 px-6 py-6"
+              onSubmit={guardarEdicionProducto}
+            >
+              <div className="space-y-2">
+                <label
+                  className="text-[11px] font-bold uppercase tracking-wider text-on-surface-variant"
+                  htmlFor="producto-editar-nombre"
+                >
+                  Nombre
+                </label>
+                <input
+                  className="w-full rounded-lg bg-surface-container-low px-4 py-3 text-sm text-on-surface outline-none ring-1 ring-transparent transition focus:ring-2 focus:ring-secondary"
+                  id="producto-editar-nombre"
+                  maxLength={100}
+                  minLength={2}
+                  onChange={(event) =>
+                    actualizarCampoEdicion("nombre", event.target.value)
+                  }
+                  placeholder="Ej: Teclado mecanico"
+                  required
+                  type="text"
+                  value={productoEditado.nombre}
+                />
+              </div>
+
+              <div className="space-y-2">
+                <label
+                  className="text-[11px] font-bold uppercase tracking-wider text-on-surface-variant"
+                  htmlFor="producto-editar-descripcion"
+                >
+                  Descripcion
+                </label>
+                <textarea
+                  className="min-h-24 w-full resize-none rounded-lg bg-surface-container-low px-4 py-3 text-sm text-on-surface outline-none ring-1 ring-transparent transition focus:ring-2 focus:ring-secondary"
+                  id="producto-editar-descripcion"
+                  onChange={(event) =>
+                    actualizarCampoEdicion("descripcion", event.target.value)
+                  }
+                  placeholder="Detalle breve del producto"
+                  value={productoEditado.descripcion}
+                />
+              </div>
+
+              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                <div className="space-y-2">
+                  <label
+                    className="text-[11px] font-bold uppercase tracking-wider text-on-surface-variant"
+                    htmlFor="producto-editar-precio"
+                  >
+                    Precio
+                  </label>
+                  <input
+                    className="w-full rounded-lg bg-surface-container-low px-4 py-3 text-sm text-on-surface outline-none ring-1 ring-transparent transition focus:ring-2 focus:ring-secondary"
+                    id="producto-editar-precio"
+                    min="1"
+                    onChange={(event) =>
+                      actualizarCampoEdicion("precio", event.target.value)
+                    }
+                    placeholder="0"
+                    required
+                    type="number"
+                    value={productoEditado.precio}
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <label
+                    className="text-[11px] font-bold uppercase tracking-wider text-on-surface-variant"
+                    htmlFor="producto-editar-stock"
+                  >
+                    Stock
+                  </label>
+                  <input
+                    className="w-full rounded-lg bg-surface-container-low px-4 py-3 text-sm text-on-surface outline-none ring-1 ring-transparent transition focus:ring-2 focus:ring-secondary"
+                    id="producto-editar-stock"
+                    min="0"
+                    onChange={(event) =>
+                      actualizarCampoEdicion("stock", event.target.value)
+                    }
+                    placeholder="0"
+                    required
+                    type="number"
+                    value={productoEditado.stock}
+                  />
+                </div>
+              </div>
+
+              {errorEdicion && (
+                <div className="rounded-lg bg-error-container px-4 py-3 text-xs font-semibold text-on-error-container">
+                  {errorEdicion}
+                </div>
+              )}
+
+              <div className="flex flex-col-reverse gap-3 pt-2 sm:flex-row sm:justify-end">
+                <button
+                  className="rounded-lg px-5 py-2.5 text-sm font-bold text-on-surface-variant transition-colors hover:bg-surface-container-low disabled:cursor-not-allowed disabled:opacity-60"
+                  disabled={guardandoEdicion}
+                  onClick={cerrarModalEditar}
+                  type="button"
+                >
+                  Cancelar
+                </button>
+                <button
+                  className="flex items-center justify-center gap-2 rounded-lg bg-secondary px-5 py-2.5 text-sm font-bold text-white shadow-lg shadow-secondary/20 transition-all hover:opacity-90 active:scale-95 disabled:cursor-not-allowed disabled:opacity-60"
+                  disabled={guardandoEdicion}
+                  type="submit"
+                >
+                  {guardandoEdicion ? (
+                    <span className="material-symbols-outlined text-lg animate-spin">
+                      progress_activity
+                    </span>
+                  ) : (
+                    <span className="material-symbols-outlined text-lg">
+                      edit_note
+                    </span>
+                  )}
+                  Guardar cambios
                 </button>
               </div>
             </form>
