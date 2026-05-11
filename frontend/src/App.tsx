@@ -4,6 +4,8 @@ import DashboardLayout from "./components/DashboardLayout";
 import RegisterPage from "./pages/RegisterPage";
 import LoginPage from "./pages/LoginPage";
 import DashboardPage from "./pages/DashboardPage";
+import InventarioPage from "./pages/InventarioPage";
+
 function App() {
   return (
     <Routes>
@@ -19,14 +21,7 @@ function App() {
         }
       >
         <Route path="/dashboard" element={<DashboardPage />} />
-        <Route
-          path="/inventario"
-          element={
-            <div className="text-2xl font-headline font-bold">
-              Inventario (en construcción)
-            </div>
-          }
-        />
+        <Route path="/inventario" element={<InventarioPage />} />
         <Route
           path="/pedidos"
           element={
