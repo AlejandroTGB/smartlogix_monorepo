@@ -3,7 +3,7 @@ from sqlalchemy.orm import declarative_base
 from sqlalchemy.orm import sessionmaker
 
 #url conexion
-SQLALCHEMY_DATABASE_URL = "postgresql://postgres:postgres@localhost:5432/db_pedidos"
+SQLALCHEMY_DATABASE_URL = "postgresql://postgres:postgres@db_pedidos:5432/db_pedidos"
 
 #motor (traductor)
 #envia las instrucciones SQL a la db
