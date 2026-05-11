@@ -1,6 +1,11 @@
 from fastapi import FastAPI
 from scalar_fastapi import get_scalar_api_reference
 from routers.pedidos_router import router as rutas_pedidos
+from database import engine
+from models.pedido_model import Base
+
+#crea las tablas solo si es que no existen
+Base.metadata.create_all(bind=engine)
 
 app = FastAPI(
     title="SmartLogix - Servicio de Pedidos",
