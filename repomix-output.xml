@@ -1,0 +1,1492 @@
+This file is a merged representation of the entire codebase, combined into a single document by Repomix.
+
+<file_summary>
+This section contains a summary of this file.
+
+<purpose>
+This file contains a packed representation of the entire repository's contents.
+It is designed to be easily consumable by AI systems for analysis, code review,
+or other automated processes.
+</purpose>
+
+<file_format>
+The content is organized as follows:
+1. This summary section
+2. Repository information
+3. Directory structure
+4. Repository files (if enabled)
+5. Multiple file entries, each consisting of:
+  - File path as an attribute
+  - Full contents of the file
+</file_format>
+
+<usage_guidelines>
+- This file should be treated as read-only. Any changes should be made to the
+  original repository files, not this packed version.
+- When processing this file, use the file path to distinguish
+  between different files in the repository.
+- Be aware that this file may contain sensitive information. Handle it with
+  the same level of security as you would the original repository.
+</usage_guidelines>
+
+<notes>
+- Some files may have been excluded based on .gitignore rules and Repomix's configuration
+- Binary files are not included in this packed representation. Please refer to the Repository Structure section for a complete list of file paths, including binary files
+- Files matching patterns in .gitignore are excluded
+- Files matching default ignore patterns are excluded
+- Files are sorted by Git change count (files with more changes are at the bottom)
+</notes>
+
+</file_summary>
+
+<directory_structure>
+.gitignore
+api_gateway/.dockerignore
+api_gateway/Dockerfile
+api_gateway/main.py
+api_gateway/requirements.txt
+docker-compose.yml
+microservicios/auth_service/.dockerignore
+microservicios/auth_service/core/security.py
+microservicios/auth_service/database.py
+microservicios/auth_service/Dockerfile
+microservicios/auth_service/main.py
+microservicios/auth_service/models/user_model.py
+microservicios/auth_service/README.md
+microservicios/auth_service/requirements.txt
+microservicios/auth_service/routers/auth_router.py
+microservicios/auth_service/schemas/auth_schema.py
+microservicios/auth_service/services/auth_service.py
+microservicios/envios_service/.dockerignore
+microservicios/envios_service/.gitkeep
+microservicios/envios_service/database.py
+microservicios/envios_service/Dockerfile
+microservicios/envios_service/main.py
+microservicios/envios_service/models/envio_model.py
+microservicios/envios_service/requirements.txt
+microservicios/envios_service/routers/envios_router.py
+microservicios/envios_service/schemas/envio_schema.py
+microservicios/inventario_service/.dockerignore
+microservicios/inventario_service/.gitkeep
+microservicios/inventario_service/database.py
+microservicios/inventario_service/Dockerfile
+microservicios/inventario_service/main.py
+microservicios/inventario_service/models/producto_model.py
+microservicios/inventario_service/requirements.txt
+microservicios/inventario_service/routers/inventario_router.py
+microservicios/inventario_service/schemas/producto_schema.py
+microservicios/pedidos_service/.dockerignore
+microservicios/pedidos_service/.gitkeep
+microservicios/pedidos_service/database.py
+microservicios/pedidos_service/Dockerfile
+microservicios/pedidos_service/main.py
+microservicios/pedidos_service/models/pedido_model.py
+microservicios/pedidos_service/requirements.txt
+microservicios/pedidos_service/routers/pedidos_router.py
+microservicios/pedidos_service/schemas/pedido_schema.py
+microservicios/pedidos_service/services/__init__.py
+microservicios/pedidos_service/services/inventario_client.py
+README.md
+</directory_structure>
+
+<files>
+This section contains the contents of the repository's files.
+
+<file path=".gitignore">
+# =========================
+# 1. PYTHON (FastAPI)
+# =========================
+
+# Entornos virtuales
+venv/
+env/
+
+.venv/
+# Caché Python
+__pycache__/
+*.py[cod]
+*$py.class
+.pytest_cache/
+
+# Typing/Lint/Format caches
+.mypy_cache/
+.ruff_cache/
+
+# Coverage
+.coverage
+htmlcov/
+coverage.xml
+
+
+# =========================
+# 2. NODE.JS (React / Vite)
+# =========================
+
+#wea pesada
+node_modules/
+dist/
+dist-ssr/
+.npm/
+
+# Tooling caches
+.vite/
+.eslintcache
+
+# Coverage
+coverage/
+
+# =========================
+# 3. VARIABLES DE ENTORNO Y SECRETOS
+# =========================
+.env
+.env.local
+.env.*.local
+
+# Logs
+*.log
+
+# =========================
+# 4. SISTEMA OPERATIVO Y OTROS
+# =========================
+.DS_Store
+Thumbs.db
+</file>
+
+<file path="api_gateway/.dockerignore">
+.venv/
+__pycache__/
+*.pyc
+.env
+.git
+.gitignore
+</file>
+
+<file path="api_gateway/Dockerfile">
+# Usamos una imagen de Python ligera
+FROM python:3.11-slim
+
+# Definimos la carpeta de trabajo dentro del contenedor
+WORKDIR /app
+
+# Copiamos primero el archivo de requerimientos
+COPY requirements.txt .
+
+# Instalamos FastAPI, Uvicorn y HTTPX
+RUN pip install --no-cache-dir -r requirements.txt
+
+# Copiamos el resto del código (el main.py)
+COPY . .
+
+# Exponemos el puerto 8080, que será la puerta de entrada principal
+EXPOSE 8080
+
+# Levantamos el servidor en el puerto 8080
+CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8080"]
+</file>
+
+<file path="api_gateway/requirements.txt">
+fastapi>=0.115.0
+uvicorn>=0.32.0
+httpx>=0.27.0
+pyjwt>=2.9.0
+python-dotenv>=1.0.1
+</file>
+
+<file path="microservicios/auth_service/.dockerignore">
+.venv/
+__pycache__/
+*.pyc
+.env
+.git/
+</file>
+
+<file path="microservicios/auth_service/Dockerfile">
+#img python
+FROM python:3.11-slim
+#directorio
+WORKDIR /app
+#dependencias sistema psycopg2 (db)
+RUN apt-get update && apt-get install -y libpq-dev gcc && rm -rf /var/lib/apt/lists/*
+#librerias python
+COPY requirements.txt .
+RUN pip install --no-cache-dir -r requirements.txt
+#copiar codigo del microservicio
+COPY . .
+#exponer puerto fastapi
+EXPOSE 8000
+#comando para ejecutar el microservicio
+CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000"]
+</file>
+
+<file path="microservicios/auth_service/models/user_model.py">
+from sqlalchemy import Column, Integer, String
+#Importamos la db que creamos en el archivo de conexion database.py
+from database import Base
+
+class UsuarioDB(Base):
+    #Nombre de la tabla
+    __tablename__ = "usuarios"
+
+    #Columnas
+    id = Column(Integer, primary_key=True, index=True)
+    email = Column(String, unique=True, index=True, nullable=False)
+    password = Column(String, nullable=False)
+    nombre = Column(String, nullable=False)
+    rol = Column(String, default="user")
+</file>
+
+<file path="microservicios/auth_service/README.md">
+# SmartLogix - Auth Service
+
+Este microservicio es el componente central de seguridad de la plataforma SmartLogix. Se encarga de la gestión de identidades, el registro de usuarios con hashing de credenciales y la emisión de tokens de acceso bajo el estándar JWT.
+
+## Arquitectura y Patrones de Diseño
+
+El servicio ha sido diseñado siguiendo principios de arquitectura limpia y patrones de diseño específicos para garantizar la escalabilidad y el desacoplamiento:
+
+### 1. Arquitectura de Microservicios
+
+Consiste en diseñar la aplicación como un conjunto de servicios pequeños e independientes.
+
+- **Aplicación:** Este servicio posee su propia base de datos (PostgreSQL) y su propio ciclo de vida de despliegue, permitiendo que la lógica de autenticación sea independiente de otros módulos como Inventario o Pedidos.
+
+### 2. Arquitectura en Capas (Layered Architecture)
+
+Consiste en organizar el código en niveles de responsabilidad, donde cada capa solo puede comunicarse con la inmediata inferior.
+
+- **Aplicación:**
+  - **Routers:** Manejan el protocolo HTTP.
+  - **Services:** Contienen la lógica de negocio.
+  - **Models:** Definen la estructura de persistencia.
+
+### 3. Patrón DTO (Data Transfer Object)
+
+Este patrón consiste en utilizar objetos simples para el transporte de datos entre procesos, evitando exponer las entidades internas de la base de datos directamente al cliente.
+
+- **Aplicación:** Se implementa mediante Schemas de Pydantic. Por ejemplo, al registrar un usuario, el cliente envía un DTO de petición, y el servidor responde con un DTO que excluye campos sensibles como el hash de la contraseña.
+
+### 4. Patrón Fachada / Service Pattern
+
+Consiste en proporcionar una interfaz unificada y simplificada a un conjunto de interfaces en un subsistema más complejo.
+
+- **Aplicación:** El archivo `auth_service.py` actúa como fachada. El Router no necesita conocer cómo se encripta una clave con Bcrypt o cómo se genera un JWT; simplemente invoca los métodos del servicio, ocultando la complejidad técnica.
+
+### 5. Inyección de Dependencias (Dependency Injection)
+
+Consiste en una técnica donde un objeto recibe sus dependencias de una fuente externa en lugar de crearlas internamente.
+
+- **Aplicación:** Se utiliza el sistema `Depends()` de FastAPI para inyectar la sesión de la base de datos (`get_db`) y el validador de seguridad (`verificar_token`) en los endpoints, facilitando el testing y la gestión de recursos.
+
+### 6. Patrón Repository y Unit of Work
+
+El patrón Repository consiste en mediar entre las capas de lógica de negocio y de datos, actuando como una colección de objetos en memoria.
+
+- **Aplicación:** En este proyecto, SQLAlchemy implementa el patrón _Unit of Work_ a través del objeto `Session`. Aunque no se creó una clase Repository explícita para evitar sobreingeniería, las consultas en la capa de Service utilizan la sesión inyectada para realizar operaciones atómicas sobre la entidad `UsuarioDB`.
+
+## Infraestructura y Dockerización
+
+El servicio está completamente contenedorizado, lo que asegura la paridad entre los entornos de desarrollo y producción.
+
+### Dockerfile
+
+El archivo de configuración de imagen define un entorno basado en Python 3.11-slim. El proceso de construcción (build) instala las dependencias de sistema para el driver de PostgreSQL (`psycopg2`) y empaqueta el código fuente, exponiendo el puerto 8000.
+
+### Orquestación con Docker Compose
+
+Se utiliza Docker Compose para levantar el ecosistema completo:
+
+- **Red Interna:** Los contenedores se comunican mediante nombres de servicio (`db_auth`) en lugar de direcciones IP locales, permitiendo que la API localice la base de datos de forma dinámica.
+- **Volúmenes:** Se utilizan volúmenes para que los datos de PostgreSQL persistan incluso si el contenedor es destruido.
+
+## Guía de Ejecución
+
+### Requisitos Previos
+
+- Docker y Docker Compose instalados.
+- Cuenta en Docker Hub (para despliegue).
+
+### Ejecución Local con Docker Compose
+
+Desde la raíz del proyecto SmartLogix, ejecute el siguiente comando para levantar la base de datos y la API simultáneamente:
+
+```bash
+docker-compose up -d --build
+```
+
+La documentación interactiva de la API estará disponible en: http://localhost:8000/docs.
+
+## Despliegue en Docker Hub
+
+Para subir nuevas versiones del microservicio al registro remoto, siga el flujo de versionamiento:
+
+1. Construir la imagen con una nueva etiqueta:
+
+```bash
+docker build -t tu_usuario/smartlogix-auth:v2 .
+```
+
+2. Cargar la imagen al registro:
+
+```bash
+docker push tu_usuario/smartlogix-auth:v2
+```
+
+## Variables de Entorno
+
+El servicio requiere un archivo `.env` en su raíz con las siguientes definiciones:
+
+- `JWT_SECRET_KEY`: Llave maestra para la firma de tokens.
+- `JWT_ALGORITHM`: Algoritmo de encriptación (ej. HS256).
+- `JWT_EXPIRE_MINUTES`: Tiempo de vida del token de acceso.
+</file>
+
+<file path="microservicios/envios_service/.dockerignore">
+.venv/
+__pycache__/
+*.pyc
+.env
+.git/
+</file>
+
+<file path="microservicios/envios_service/.gitkeep">
+
+</file>
+
+<file path="microservicios/envios_service/Dockerfile">
+#img python
+FROM python:3.11-slim
+#directorio
+WORKDIR /app
+#dependencias sistema psycopg2 (db)
+RUN apt-get update && apt-get install -y libpq-dev gcc && rm -rf /var/lib/apt/lists/*
+#librerias python
+COPY requirements.txt .
+RUN pip install --no-cache-dir -r requirements.txt
+#copiar codigo del microservicio
+COPY . .
+#exponer puerto fastapi
+EXPOSE 8000
+#comando para ejecutar el microservicio
+CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000"]
+</file>
+
+<file path="microservicios/envios_service/models/envio_model.py">
+from sqlalchemy import Column, Integer, String
+
+from database import Base
+
+class EnvioDB(Base):
+    #Nombre de la tabla
+    __tablename__ = "envios"
+
+    #Columnas
+    id = Column(Integer, primary_key=True, index=True)
+    pedido_id = Column(Integer, index=True, nullable=False)
+    direccion_entrega = Column(String, nullable=False)
+    comuna = Column(String, nullable=False)
+    ciudad = Column(String, nullable=False)
+    transportista = Column(String, nullable=True)
+    codigo_seguimiento = Column(String, unique=True, index=True, nullable=False)
+    estado = Column(String, default="pendiente", nullable=False)
+</file>
+
+<file path="microservicios/envios_service/schemas/envio_schema.py">
+from typing import Optional
+
+from pydantic import BaseModel, Field
+
+#============================
+# Entrada
+#============================
+
+class EnvioCreate(BaseModel):
+    pedido_id: int = Field(gt=0)
+    direccion_entrega: str = Field(min_length=5, max_length=150)
+    comuna: str = Field(min_length=2, max_length=80)
+    ciudad: str = Field(min_length=2, max_length=80)
+    transportista: Optional[str] = None
+
+class EstadoEnvioUpdate(BaseModel):
+    estado: str
+
+#============================
+# Salida
+#============================
+
+class EnvioResponse(BaseModel):
+    id: int
+    pedido_id: int
+    direccion_entrega: str
+    comuna: str
+    ciudad: str
+    transportista: Optional[str]
+    codigo_seguimiento: str
+    estado: str
+</file>
+
+<file path="microservicios/inventario_service/.dockerignore">
+.venv/
+__pycache__/
+*.pyc
+.env
+</file>
+
+<file path="microservicios/inventario_service/.gitkeep">
+
+</file>
+
+<file path="microservicios/inventario_service/Dockerfile">
+# Imagen base de Python ligera
+FROM python:3.11-slim
+
+# Directorio de trabajo dentro del contenedor
+WORKDIR /app
+
+# Instalar dependencias del sistema necesarias para PostgreSQL (psycopg2)
+RUN apt-get update && apt-get install -y libpq-dev gcc && rm -rf /var/lib/apt/lists/*
+
+# Copiar el archivo de requerimientos e instalar las librerías de Python
+COPY requirements.txt .
+RUN pip install --no-cache-dir -r requirements.txt
+
+# Copiar todo el código del microservicio
+COPY . .
+
+# Exponer el puerto donde corre FastAPI internamente
+EXPOSE 8000
+
+# Comando para ejecutar el servidor
+CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000"]
+</file>
+
+<file path="microservicios/inventario_service/models/producto_model.py">
+from sqlalchemy import Column, Integer, String, Float
+from database import Base
+
+class ProductoDB(Base):
+    __tablename__ = "productos"
+
+    id = Column(Integer, primary_key=True, index=True)
+    nombre = Column(String, nullable=False)
+    descripcion = Column(String, nullable=True)
+    precio = Column(Float, nullable=False)
+    stock = Column(Integer, nullable=False)
+</file>
+
+<file path="microservicios/inventario_service/schemas/producto_schema.py">
+from typing import Optional
+
+from pydantic import BaseModel, Field
+
+
+# Entrada
+class ProductoCreate(BaseModel):
+    nombre: str = Field(min_length=2, max_length=100)
+    descripcion: Optional[str] = None
+    precio: float = Field(gt=0)
+    stock: int = Field(ge=0)
+
+class StockUpdate(BaseModel):
+    stock: int = Field(ge=0)
+
+
+# Salida
+class ProductoResponse(BaseModel):
+    id: int
+    nombre: str
+    descripcion: Optional[str]
+    precio: float
+    stock: int
+</file>
+
+<file path="microservicios/pedidos_service/.dockerignore">
+.venv/
+__pycache__/
+*.pyc
+.env
+.git/
+</file>
+
+<file path="microservicios/pedidos_service/.gitkeep">
+
+</file>
+
+<file path="microservicios/pedidos_service/Dockerfile">
+#img python
+FROM python:3.11-slim
+#directorio
+WORKDIR /app
+#dependencias sistema psycopg2 (db)
+RUN apt-get update && apt-get install -y libpq-dev gcc && rm -rf /var/lib/apt/lists/*
+#librerias python
+COPY requirements.txt .
+RUN pip install --no-cache-dir -r requirements.txt
+#copiar codigo del microservicio
+COPY . .
+#exponer puerto fastapi
+EXPOSE 8000
+#comando para ejecutar el microservicio
+CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000"]
+</file>
+
+<file path="microservicios/pedidos_service/models/pedido_model.py">
+from sqlalchemy import Column, ForeignKey, Integer, String
+from sqlalchemy.orm import relationship
+
+from database import Base
+
+class PedidoDB(Base):
+    #Nombre de la tabla
+    __tablename__ = "pedidos"
+
+    #Columnas
+    id = Column(Integer, primary_key=True, index=True)
+    cliente_id = Column(Integer, index=True, nullable=False)
+    estado = Column(String, default="pendiente", nullable=False)
+
+    #un pedido puede tener muchos productos asociados en el detalle
+    productos = relationship(
+        "DetallePedidoDB",
+        back_populates="pedido",
+        cascade="all, delete-orphan"
+    )
+
+class DetallePedidoDB(Base):
+    #Nombre de la tabla
+    __tablename__ = "detalle_pedidos"
+
+    #Columnas
+    id = Column(Integer, primary_key=True, index=True)
+    pedido_id = Column(Integer, ForeignKey("pedidos.id"), nullable=False)
+    producto_id = Column(Integer, nullable=False)
+    cantidad = Column(Integer, nullable=False)
+
+    #Relacion con la tabla pedidos
+    pedido = relationship("PedidoDB", back_populates="productos")
+</file>
+
+<file path="microservicios/pedidos_service/schemas/pedido_schema.py">
+from typing import List
+
+from pydantic import BaseModel, Field
+
+#============================
+# Entrada
+#============================
+
+class PedidoItemCreate(BaseModel):
+    producto_id: int = Field(gt=0)
+    cantidad: int = Field(gt=0)
+
+class PedidoCreate(BaseModel):
+    cliente_id: int = Field(gt=0)
+    productos: List[PedidoItemCreate]
+
+class EstadoPedidoUpdate(BaseModel):
+    estado: str
+
+#============================
+# Salida
+#============================
+
+class PedidoItemResponse(BaseModel):
+    producto_id: int
+    cantidad: int
+
+class PedidoResponse(BaseModel):
+    id: int
+    cliente_id: int
+    productos: List[PedidoItemResponse]
+    estado: str
+</file>
+
+<file path="microservicios/pedidos_service/services/__init__.py">
+
+</file>
+
+<file path="microservicios/pedidos_service/services/inventario_client.py">
+import os
+from typing import Dict
+
+import httpx
+from fastapi import HTTPException
+
+INVENTARIO_SERVICE_URL = os.getenv(
+    "INVENTARIO_SERVICE_URL",
+    "http://localhost:8001"
+)
+
+
+#cliente para consultar inventario sin acceder directo a su db
+async def validar_productos_en_inventario(cantidades_por_producto: Dict[int, int]):
+    async with httpx.AsyncClient(timeout=5.0) as client:
+        for producto_id, cantidad in cantidades_por_producto.items():
+            url = f"{INVENTARIO_SERVICE_URL}/api/v1/inventario/productos/{producto_id}"
+
+            try:
+                respuesta = await client.get(url)
+            except httpx.RequestError:
+                raise HTTPException(status_code=503, detail="Inventario no disponible")
+
+            if respuesta.status_code == 404:
+                raise HTTPException(
+                    status_code=400,
+                    detail=f"Producto {producto_id} no existe en inventario"
+                )
+
+            if respuesta.status_code != 200:
+                raise HTTPException(
+                    status_code=502,
+                    detail="Error consultando inventario"
+                )
+
+            producto = respuesta.json()
+
+            if producto["stock"] < cantidad:
+                raise HTTPException(
+                    status_code=400,
+                    detail=f"Stock insuficiente para producto {producto_id}"
+                )
+</file>
+
+<file path="README.md">
+
+</file>
+
+<file path="api_gateway/main.py">
+import httpx
+import jwt
+import os
+from fastapi import FastAPI, Request, HTTPException, Response
+from dotenv import load_dotenv
+
+app = FastAPI(title="SmartLogix Gateway",
+              docs_url=None, redoc_url=None, openapi_url=None)
+
+SECRET_KEY = os.getenv("JWT_SECRET_KEY")
+ALGORITHM = "HS256"
+
+RUTAS_SERVICIOS = {
+    "auth": "http://api_auth:8000",
+    "inventario": "http://api_inventario:8000",
+    "pedidos": "http://api_pedidos:8000",
+    "envios": "http://api_envios:8000"
+}
+
+@app.api_route("/{path:path}", methods=["GET", "POST", "PUT", "DELETE"])
+async def enrutador_principal(request: Request, path: str):
+    # 1. Determinar a qué servicio va analizando el inicio de la ruta
+    # Si la ruta es "api/v1/auth/login", el servicio es "auth"
+    partes = path.split("/")
+    
+    # Buscamos si alguna parte de la URL coincide con nuestros servicios (auth o inventario)
+    servicio_destino = None
+    for s in RUTAS_SERVICIOS.keys():
+        if s in partes:
+            servicio_destino = s
+            break
+
+    if not servicio_destino:
+        raise HTTPException(status_code=404, detail="No se pudo determinar el servicio de destino")
+
+    # 2. Seguridad
+    servicios_protegidos = ["inventario", "pedidos", "envios"]
+
+    if servicio_destino in servicios_protegidos and request.method in ["POST", "PUT", "DELETE"]:
+        auth_header = request.headers.get("Authorization")
+        if not auth_header:
+            raise HTTPException(status_code=401, detail="Token requerido")
+        try:
+            token = auth_header.replace("Bearer ", "")
+            payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
+            if payload.get("rol") != "admin":
+                raise HTTPException(status_code=403, detail="Permisos insuficientes")
+        except Exception as e:
+            # Esto te dirá el error real en la respuesta de Postman
+            raise HTTPException(status_code=401, detail=f"Error de validación: {str(e)}")
+
+    # 3. CONSTRUCCIÓN DE URL INTELIGENTE
+    # Si el usuario pide ".../docs", se lo pedimos a la raíz del microservicio
+    # Si pide ".../api/v1/...", se lo pedimos completo.
+    url_base = RUTAS_SERVICIOS[servicio_destino]
+    
+    if "docs" in partes or "openapi.json" in partes:
+        # Si pide documentación, la buscamos en la raíz del microservicio
+        url_final = f"{url_base}/{partes[-1]}"
+    else:
+        # Si es una ruta normal, la pasamos tal cual: http://api_auth:8000/api/v1/auth/login
+        url_final = f"{url_base}/{path}"
+
+    # 4. Petición interna
+    async with httpx.AsyncClient() as client:
+        try:
+            respuesta = await client.request(
+                method=request.method,
+                url=url_final,
+                headers=request.headers.raw,
+                content=await request.body()
+            )
+            return Response(
+                content=respuesta.content,
+                status_code=respuesta.status_code,
+                headers=dict(respuesta.headers)
+            )
+        except httpx.RequestError:
+            raise HTTPException(status_code=503, detail=f"Servicio {servicio_destino} no disponible")
+</file>
+
+<file path="microservicios/auth_service/core/security.py">
+import os
+import jwt
+from datetime import datetime, timedelta, timezone
+from dotenv import load_dotenv
+
+from fastapi import HTTPException, Security
+from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
+from jwt.exceptions import PyJWTError
+
+#esto busca el .env y lo carga en la memoria temporal de python
+load_dotenv()
+
+SECRET_KEY = os.getenv("JWT_SECRET_KEY", "clave_por_defecto_insegura")
+ALGORITHM = os.getenv("JWT_ALGORITHM", "HS256")
+ACCESS_TOKEN_EXPIRE_MINUTES = int(os.getenv("JWT_ACCESS_TOKEN_EXPIRE_MINUTES", 60))
+
+#crear token
+def crear_token_acceso(datos: dict):
+    to_encode = datos.copy()
+    expire = datetime.now(timezone.utc) + timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
+    to_encode.update({"exp": expire})
+
+    encoded_jwt = jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
+
+    return encoded_jwt
+
+#verifica token
+
+esquema_seguridad = HTTPBearer()
+
+def verificar_token(credenciales: HTTPAuthorizationCredentials = Security(esquema_seguridad)):
+    #sacamos el texto del token
+    token = credenciales.credentials
+
+    try:
+        #intentomas decodificar el token con la llave secreta
+        payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
+        #si sale bien devolvemos datos del usuario
+        return payload
+    
+    except PyJWTError:
+        #si el token expiro, la firma no coincide o es texto basura tiramos error
+        raise HTTPException(status_code=401, detail="Token de acceso inválido o expirado. Acceso denegado.",
+                            headers={"WWW-Authenticate": "Bearer"},
+                            )
+</file>
+
+<file path="microservicios/auth_service/main.py">
+from fastapi import FastAPI
+from scalar_fastapi import get_scalar_api_reference
+from routers.auth_router import router as rutas_autenticacion
+from database import engine
+import models.user_model
+
+# Esta línea va a Postgres y le dice: 
+# "Revisa mis modelos y crea las tablas que falten"
+models.user_model.Base.metadata.create_all(bind=engine)
+
+app = FastAPI(
+    title="SmartLogix - Servicio de Autenticación",
+    description="Microservicio de autenticación",
+    version="1.0.0",
+    docs_url=None,
+    redoc_url=None #apague docs y redoc porque usaremos scalar jeje
+)
+
+#rutas
+app.include_router(rutas_autenticacion)
+
+#ruta scalar
+@app.get("/docs", include_in_schema=False)
+async def scalar_html():
+    return get_scalar_api_reference(
+        openapi_url=app.openapi_url,
+        title="SmartLogix API - Scalar Docs Servicio Autenticación"
+    )
+
+@app.get("/", tags=["Sistema"])
+async def health_check():
+    return {"status": "Auth Service funcionando correctamente con Scalar"}
+</file>
+
+<file path="microservicios/envios_service/main.py">
+from fastapi import FastAPI
+from scalar_fastapi import get_scalar_api_reference
+from routers.envios_router import router as rutas_envios
+from database import engine
+from models.envio_model import Base
+
+#crea las tablas solo si es que no existen
+Base.metadata.create_all(bind=engine)
+
+app = FastAPI(
+    title="SmartLogix - Servicio de Envios",
+    description="Microservicio para gestion de envios y seguimiento",
+    version="1.0.0",
+    docs_url=None,
+    redoc_url=None #apagamos docs y redoc porque usaremos scalar
+)
+
+#rutas
+app.include_router(rutas_envios)
+
+#ruta scalar
+@app.get("/docs", include_in_schema=False)
+async def scalar_html():
+    return get_scalar_api_reference(
+        openapi_url=app.openapi_url,
+        title="SmartLogix API - Scalar Docs Servicio Envios"
+    )
+
+@app.get("/", tags=["Sistema"])
+async def health_check():
+    return {"status": "Envios Service funcionando correctamente con Scalar"}
+</file>
+
+<file path="microservicios/envios_service/requirements.txt">
+fastapi>=0.115.0
+uvicorn>=0.32.0
+pydantic>=2.9.0
+scalar-fastapi>=1.0.3
+sqlalchemy>=2.0.0
+psycopg2-binary>=2.9.9
+</file>
+
+<file path="microservicios/inventario_service/main.py">
+from fastapi import FastAPI
+from scalar_fastapi import get_scalar_api_reference
+from routers.inventario_router import router as rutas_inventario
+from database import engine
+from models.producto_model import Base
+
+#crea las tablas solo si es que no existen
+Base.metadata.create_all(bind=engine)
+
+app = FastAPI(
+    title="SmartLogix - Servicio de Inventario",
+    description="Microservicio para gestion de productos y stock",
+    version="1.0.0",
+    docs_url=None,
+    redoc_url=None #apagamos docs y redoc porque usaremos scalar
+)
+
+#rutas
+app.include_router(rutas_inventario)
+
+#ruta scalar
+@app.get("/docs", include_in_schema=False)
+async def scalar_html():
+    return get_scalar_api_reference(
+        openapi_url=app.openapi_url,
+        title="SmartLogix API - Scalar Docs Servicio Inventario"
+    )
+
+@app.get("/", tags=["Sistema"])
+async def health_check():
+    return {"status": "Inventario Service funcionando correctamente con Scalar"}
+</file>
+
+<file path="microservicios/inventario_service/requirements.txt">
+fastapi>=0.115.0
+uvicorn>=0.32.0
+pydantic>=2.9.0
+scalar-fastapi>=1.0.3
+sqlalchemy>=2.0.0
+psycopg2-binary>=2.9.9
+</file>
+
+<file path="microservicios/inventario_service/routers/inventario_router.py">
+from typing import List
+
+from fastapi import APIRouter, HTTPException, Depends
+from sqlalchemy.orm import Session
+from database import get_db
+from models.producto_model import ProductoDB
+from schemas.producto_schema import ProductoCreate, ProductoResponse, StockUpdate
+
+router = APIRouter(
+    prefix="/api/v1/inventario",
+    tags=["Inventario"]
+)
+
+#lista temporal para testear rutas de inventario
+##{
+        #"id": 1,
+        #"nombre": "Manzana",
+        #"descripcion": "Asitica y verde",
+        #"precio": 990,
+        #"stock": 26
+    #},
+    #{
+        #"id": 2,
+        #"nombre": "Monitor Thunderobot",
+        #"descripcion": "Monitor QHD de 27p",
+        #"precio": 125990,
+        #"stock": 8
+    #}
+#]
+
+
+#listar productos
+@router.get("/productos", response_model=List[ProductoResponse])
+async def listar_productos(db: Session = Depends(get_db)):
+    return db.query(ProductoDB).all()
+
+
+#buscar producto id
+@router.get("/productos/{producto_id}", response_model=ProductoResponse)
+async def obtener_producto(producto_id: int, db: Session = Depends(get_db)):
+    producto = db.query(ProductoDB).filter(ProductoDB.id == producto_id).first()
+    if not producto:
+         raise HTTPException(status_code=404, detail="Producto no encontrado")
+    return producto
+
+
+#crear producto
+@router.post("/productos", response_model=ProductoResponse, status_code=201)
+async def crear_producto(datos: ProductoCreate, db: Session = Depends(get_db)):
+    nuevo_producto = ProductoDB(
+        nombre=datos.nombre,
+        descripcion=datos.descripcion,
+        precio=datos.precio,
+        stock=datos.stock
+    )
+    db.add(nuevo_producto)
+    db.commit()
+    db.refresh(nuevo_producto)
+    return nuevo_producto
+
+
+#actualizar stock
+@router.put("/productos/{producto_id}/stock", response_model=ProductoResponse)
+async def actualizar_stock(producto_id: int, datos: StockUpdate, db: Session = Depends(get_db)):
+    producto = db.query(ProductoDB).filter(ProductoDB.id == producto_id).first()
+    if not producto:
+        raise HTTPException(status_code=404, detail="Producto no encontrado")
+    producto.stock = datos.stock
+    db.commit()
+    db.refresh(producto)
+    return producto
+</file>
+
+<file path="microservicios/pedidos_service/main.py">
+from fastapi import FastAPI
+from scalar_fastapi import get_scalar_api_reference
+from routers.pedidos_router import router as rutas_pedidos
+from database import engine
+from models.pedido_model import Base
+
+#crea las tablas solo si es que no existen
+Base.metadata.create_all(bind=engine)
+
+app = FastAPI(
+    title="SmartLogix - Servicio de Pedidos",
+    description="Microservicio para gestion de pedidos",
+    version="1.0.0",
+    docs_url=None,
+    redoc_url=None #apagamos docs y redoc porque usaremos scalar
+)
+
+#rutas
+app.include_router(rutas_pedidos)
+
+#ruta scalar
+@app.get("/docs", include_in_schema=False)
+async def scalar_html():
+    return get_scalar_api_reference(
+        openapi_url=app.openapi_url,
+        title="SmartLogix API - Scalar Docs Servicio Pedidos"
+    )
+
+@app.get("/", tags=["Sistema"])
+async def health_check():
+    return {"status": "Pedidos Service funcionando correctamente con Scalar"}
+</file>
+
+<file path="microservicios/envios_service/routers/envios_router.py">
+from typing import List
+
+from fastapi import APIRouter, HTTPException, Depends
+from sqlalchemy.orm import Session
+from database import get_db
+from models.envio_model import EnvioDB
+from schemas.envio_schema import EnvioCreate, EnvioResponse, EstadoEnvioUpdate
+
+router = APIRouter(
+    prefix="/api/v1/envios",
+    tags=["Envios"]
+)
+
+estados_permitidos = ["pendiente", "preparando", "despachado", "en_transito", "entregado", "cancelado"]
+
+
+# Listar envios
+@router.get("", response_model=List[EnvioResponse])
+async def listar_envios(db: Session = Depends(get_db)):
+    return db.query(EnvioDB).all()
+
+
+# Buscar envio por id
+@router.get("/{envio_id}", response_model=EnvioResponse)
+async def obtener_envio(envio_id: int, db: Session = Depends(get_db)):
+    envio = db.query(EnvioDB).filter(EnvioDB.id == envio_id).first()
+    if not envio:
+        raise HTTPException(status_code=404, detail="Envio no encontrado")
+    return envio
+
+
+# Crear envio
+@router.post("", response_model=EnvioResponse, status_code=201)
+async def crear_envio(datos: EnvioCreate, db: Session = Depends(get_db)):
+    nuevo_envio = EnvioDB(
+        pedido_id=datos.pedido_id,
+        direccion_entrega=datos.direccion_entrega,
+        comuna=datos.comuna,
+        ciudad=datos.ciudad,
+        transportista=datos.transportista,
+        codigo_seguimiento="ENV-temporal",
+        estado="pendiente"
+    )
+
+    db.add(nuevo_envio)
+    db.flush()
+    nuevo_envio.codigo_seguimiento = f"ENV-{nuevo_envio.id:05d}"
+    db.commit()
+    db.refresh(nuevo_envio)
+    return nuevo_envio
+
+
+# Actualizar estado
+@router.put("/{envio_id}/estado", response_model=EnvioResponse)
+async def actualizar_estado(envio_id: int, datos: EstadoEnvioUpdate, db: Session = Depends(get_db)):
+    if datos.estado not in estados_permitidos:
+        raise HTTPException(status_code=400, detail="Estado de envio no permitido")
+
+    envio = db.query(EnvioDB).filter(EnvioDB.id == envio_id).first()
+    if not envio:
+        raise HTTPException(status_code=404, detail="Envio no encontrado")
+    envio.estado = datos.estado
+    db.commit()
+    db.refresh(envio)
+    return envio
+</file>
+
+<file path="microservicios/pedidos_service/requirements.txt">
+fastapi>=0.115.0
+uvicorn>=0.32.0
+pydantic>=2.9.0
+scalar-fastapi>=1.0.3
+sqlalchemy>=2.0.0
+psycopg2-binary>=2.9.9
+httpx>=0.27.0
+</file>
+
+<file path="microservicios/pedidos_service/routers/pedidos_router.py">
+from typing import List
+
+from fastapi import APIRouter, HTTPException, Depends
+from sqlalchemy.orm import Session
+from database import get_db
+from models.pedido_model import DetallePedidoDB, PedidoDB
+from schemas.pedido_schema import EstadoPedidoUpdate, PedidoCreate, PedidoResponse
+from services.inventario_client import validar_productos_en_inventario
+
+router = APIRouter(
+    prefix="/api/v1/pedidos",
+    tags=["Pedidos"]
+)
+
+estados_permitidos = ["pendiente", "preparando", "enviado", "entregado", "cancelado"]
+
+
+# Listar pedidos
+@router.get("", response_model=List[PedidoResponse])
+async def listar_pedidos(db: Session = Depends(get_db)):
+    return db.query(PedidoDB).all()
+
+
+# Buscar pedido por id
+@router.get("/{pedido_id}", response_model=PedidoResponse)
+async def obtener_pedido(pedido_id: int, db: Session = Depends(get_db)):
+    pedido = db.query(PedidoDB).filter(PedidoDB.id == pedido_id).first()
+    if not pedido:
+        raise HTTPException(status_code=404, detail="Pedido no encontrado")
+    return pedido
+
+
+# Crear pedido
+@router.post("", response_model=PedidoResponse, status_code=201)
+async def crear_pedido(datos: PedidoCreate, db: Session = Depends(get_db)):
+    cantidades_por_producto = {}
+
+    for producto in datos.productos:
+        cantidad_actual = cantidades_por_producto.get(producto.producto_id, 0)
+        cantidades_por_producto[producto.producto_id] = cantidad_actual + producto.cantidad
+
+    await validar_productos_en_inventario(cantidades_por_producto)
+
+    nuevo_pedido = PedidoDB(
+        cliente_id=datos.cliente_id,
+        estado="pendiente"
+    )
+
+    for producto in datos.productos:
+        nuevo_pedido.productos.append(
+            DetallePedidoDB(
+                producto_id=producto.producto_id,
+                cantidad=producto.cantidad
+            )
+        )
+
+    db.add(nuevo_pedido)
+    db.commit()
+    db.refresh(nuevo_pedido)
+    return nuevo_pedido
+
+
+# Actualizar estado
+@router.put("/{pedido_id}/estado", response_model=PedidoResponse)
+async def actualizar_estado(pedido_id: int, datos: EstadoPedidoUpdate, db: Session = Depends(get_db)):
+    if datos.estado not in estados_permitidos:
+        raise HTTPException(status_code=400, detail="Estado de pedido no permitido")
+
+    pedido = db.query(PedidoDB).filter(PedidoDB.id == pedido_id).first()
+    if not pedido:
+        raise HTTPException(status_code=404, detail="Pedido no encontrado")
+    pedido.estado = datos.estado
+    db.commit()
+    db.refresh(pedido)
+    return pedido
+</file>
+
+<file path="microservicios/auth_service/routers/auth_router.py">
+from fastapi import APIRouter, HTTPException, Depends
+from sqlalchemy.orm import Session
+from schemas.auth_schema import LoginRequest, LoginResponse, RegisterRequest, UsuarioResponse
+from services.auth_service import AuthService
+from database import get_db
+from core.security import verificar_token
+
+router = APIRouter(
+    prefix="/api/v1/auth",
+    tags=["Autenticacion"]
+)
+
+
+#============================
+# Ruta de registro
+#============================
+@router.post("/registro", response_model=UsuarioResponse, status_code=201)
+async def registrar(
+    datos: RegisterRequest,
+    db: Session = Depends(get_db) #----> la inyeccion
+):  
+    #Pasamos datos y la conexión al service
+    nuevo_usuario = AuthService.registrar_usuario(db,datos)
+    
+    #Si el service devueve none es que ya estaba registrado ese corrreo
+    if not nuevo_usuario:
+        raise HTTPException(status_code=400, detail="El correo ya está registrado en el sistema.")
+    
+    #si sale bien, devolvemos el usuario
+    return nuevo_usuario
+
+#============================
+# Ruta de login
+#============================
+@router.post("/login", response_model=LoginResponse)
+async def login(
+    credenciales: LoginRequest,
+    db: Session = Depends(get_db)
+):
+    #pasamos conexion y datos al service
+    usuario_autenticado = AuthService.autenticar_usuario(db, credenciales)
+
+    if not usuario_autenticado:
+        raise HTTPException(status_code=401, detail="Credenciales incorrectas")
+    
+    return usuario_autenticado
+
+#============================
+# Ruta de prueba protegida
+#============================
+# usamos depends para decirle a fastapi que antes de ejecutar esta ruta pase por el guardia
+@router.get("/perfil")
+async def ver_perfil(usuario_token: dict = Depends(verificar_token)):
+    return {
+        "mensaje": "Acceso autorizado. Aquí podrías mostrar información del perfil del usuario.",
+        "datos_secretos": "Info sensible",
+        "tu_identidad": usuario_token
+    }
+</file>
+
+<file path="microservicios/auth_service/schemas/auth_schema.py">
+from pydantic import BaseModel, EmailStr
+
+#============================
+# Entrada
+#============================
+
+class LoginRequest(BaseModel):
+    email: EmailStr
+    password: str
+
+class RegisterRequest(BaseModel):
+    email: EmailStr
+    password: str
+    nombre:str
+
+#============================
+# Salida
+#============================
+
+class LoginResponse(BaseModel):
+    id: int
+    nombre: str
+    rol: str
+    token: str
+
+class UsuarioResponse(BaseModel):
+    id: int
+    email: EmailStr
+    nombre: str
+    rol: str
+</file>
+
+<file path="microservicios/auth_service/services/auth_service.py">
+import bcrypt
+from sqlalchemy.orm import Session
+from models.user_model import UsuarioDB
+from schemas.auth_schema import LoginRequest, RegisterRequest
+from core.security import crear_token_acceso
+
+class AuthService:
+    @staticmethod
+    def registrar_usuario(db: Session, datos: RegisterRequest):
+        #lo primero, verificar si el correo ya existe en la db
+        #es como un "userRepository.findbyEmail(email) en spring boot"
+        usuario_existente = db.query(UsuarioDB).filter(UsuarioDB.email == datos.email).first()
+        if usuario_existente:
+            return None #Devolvemos none para que el router lance un error 400
+        
+        #encriptar la contraseña
+        salt = bcrypt.gensalt()
+
+        #Bcrypt necesita que los textos esten en bytes antes de encriptar:
+        password_encriptada = bcrypt.hashpw(datos.password.encode('utf-8'), salt).decode('utf-8')
+
+        #Crear un registro nuevo usando el Model
+        nuevo_usuario = UsuarioDB(
+            email=datos.email,
+            password=password_encriptada,
+            nombre=datos.nombre
+        )
+
+        #Guardar en la db nachei
+        db.add(nuevo_usuario) #Lo preparamos para guardar
+        db.commit()           #se guarda en la db
+        db.refresh(nuevo_usuario) #actualiza el objeto con los datos de la db (como el id generado)
+
+        #devolvemos el modelo completo al router
+        return nuevo_usuario
+    
+    @staticmethod
+    def autenticar_usuario(db: Session, credenciales: LoginRequest):
+        #buscamos al usuario en la db por su correo
+        usuario_db = db.query(UsuarioDB).filter(UsuarioDB.email == credenciales.email).first()
+        
+        #si no existe devolvemos none (401)
+        if not usuario_db:
+            return None
+        
+        #verificamos la pass
+        #bcrypt compara la clave ingresada (en bytes) con la clave guardada (en bytes)
+        clave_ingresada_bytes = credenciales.password.encode('utf-8')
+        clave_guardada_bytes = usuario_db.password.encode('utf-8')
+
+        if not bcrypt.checkpw(clave_ingresada_bytes, clave_guardada_bytes):
+            return None #password incorrecta xd
+        
+        #si todo esta ok armamos el paquete de respuesta
+        #Generacion de token JWT
+        #sub= de quien es el token en este caso el usario, id= para identificarlo univocamente, rol= para manejar autorizaciones en el futuro
+        datos_token = {
+            "sub": usuario_db.email,
+            "id": usuario_db.id,
+            "rol": usuario_db.rol
+        }
+        token_acceso = crear_token_acceso(datos_token)
+
+
+        return {
+            "id": usuario_db.id,
+            "nombre": usuario_db.nombre,
+            "rol": usuario_db.rol,
+            "token": token_acceso
+        }
+</file>
+
+<file path="microservicios/auth_service/requirements.txt">
+fastapi>=0.115.0
+uvicorn>=0.32.0
+pydantic>=2.9.0
+scalar-fastapi>=1.0.3
+sqlalchemy>=2.0.0
+psycopg2-binary>=2.9.9
+email-validator>=2.1.1
+bcrypt>=4.2.0
+PyJWT>=2.8.0
+python-dotenv>=1.0.1
+</file>
+
+<file path="docker-compose.yml">
+version: "3.8"
+
+services:
+  #============================
+  # AUTH SERVICE
+  #============================
+  # contenedor de la db
+  db_auth:
+    image: postgres:15
+    container_name: smartlogix_postgres_auth
+    restart: always
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: db_auth
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data_auth:/var/lib/postgresql/data
+
+  # contenedor del microservicio fastapi AUTH
+  api_auth:
+    build:
+      context: ./microservicios/auth_service
+    container_name: smartlogix_api_auth
+    restart: always
+    ports:
+      - "8000:8000"
+    # leer variables JWT_SECRET_KEY y JWT_ALGORITHM del archivo .env
+    env_file:
+      - ./microservicios/auth_service/.env
+    depends_on:
+      - db_auth
+
+  #============================
+  # INVENTARIO SERVICE
+  #============================
+  db_inventario:
+    image: postgres:15
+    container_name: smartlogix_postgres_inv
+    restart: always
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: db_inventario
+    ports:
+      - "5433:5432" #5433 para que no choque con la db de Auth
+    volumes:
+      - postgres_data_inv:/var/lib/postgresql/data
+
+  api_inventario:
+    build:
+      context: ./microservicios/inventario_service
+    container_name: smartlogix_api_inventario
+    restart: always
+    ports:
+      - "8001:8000" #8001 para que no choque con el puerto
+    depends_on:
+      - db_inventario
+
+  #============================
+  # PEDIDOS SERVICE
+  #============================
+  db_pedidos:
+    image: postgres:15
+    container_name: smartlogix_postgres_pedidos
+    restart: always
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: db_pedidos
+    ports:
+      - "5434:5432" #5434 para que no choque con auth ni inventario
+    volumes:
+      - postgres_data_pedidos:/var/lib/postgresql/data
+
+  api_pedidos:
+    build:
+      context: ./microservicios/pedidos_service
+    container_name: smartlogix_api_pedidos
+    restart: always
+    ports:
+      - "8002:8000" #8002 para que no choque con auth ni inventario
+    environment:
+      INVENTARIO_SERVICE_URL: http://api_inventario:8000
+    depends_on:
+      - db_pedidos
+      - api_inventario
+
+  #============================
+  # ENVIOS SERVICE
+  #============================
+  db_envios:
+    image: postgres:15
+    container_name: smartlogix_postgres_envios
+    restart: always
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: db_envios
+    ports:
+      - "5435:5432" #5435 para que no choque con auth, inventario ni pedidos
+    volumes:
+      - postgres_data_envios:/var/lib/postgresql/data
+
+  api_envios:
+    build:
+      context: ./microservicios/envios_service
+    container_name: smartlogix_api_envios
+    restart: always
+    ports:
+      - "8003:8000" #8003 para que no choque con auth, inventario ni pedidos
+    depends_on:
+      - db_envios
+
+  #============================
+  # API GATEWAY
+  #============================
+  gateway:
+    build:
+      context: ./api_gateway
+    container_name: smartlogix_api_gateway
+    restart: always
+    ports:
+      - "8080:8080"
+    env_file:
+      - ./microservicios/auth_service/.env
+    depends_on:
+      - api_auth
+      - api_inventario
+      - api_pedidos
+      - api_envios
+
+volumes:
+  postgres_data_auth:
+  postgres_data_inv:
+  postgres_data_pedidos:
+  postgres_data_envios:
+</file>
+
+</files>
