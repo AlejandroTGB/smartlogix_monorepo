@@ -7,6 +7,15 @@ from dotenv import load_dotenv
 app = FastAPI(title="SmartLogix Gateway",
               docs_url=None, redoc_url=None, openapi_url=None)
 
+from fastapi.middleware.cors import CORSMiddleware
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["http://localhost:5173"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
 SECRET_KEY = os.getenv("JWT_SECRET_KEY")
 ALGORITHM = "HS256"
 
