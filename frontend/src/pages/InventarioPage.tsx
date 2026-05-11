@@ -1,6 +1,7 @@
 import { useEffect, useState, type FormEvent } from "react";
 import {
   createProducto,
+  deleteProducto,
   getProductos,
   type Producto,
   type ProductoCreate,
@@ -20,6 +21,10 @@ export default function InventarioPage() {
   const [guardandoProducto, setGuardandoProducto] = useState(false);
   const [errorFormulario, setErrorFormulario] = useState("");
   const [nuevoProducto, setNuevoProducto] = useState(productoInicial);
+  const [productoParaEliminar, setProductoParaEliminar] =
+    useState<Producto | null>(null);
+  const [eliminandoProducto, setEliminandoProducto] = useState(false);
+  const [errorEliminar, setErrorEliminar] = useState("");
 
   useEffect(() => {
     getProductos()
@@ -83,6 +88,35 @@ export default function InventarioPage() {
       );
     } finally {
       setGuardandoProducto(false);
+    }
+  };
+
+  const cerrarModalEliminar = () => {
+    if (eliminandoProducto) return;
+    setProductoParaEliminar(null);
+    setErrorEliminar("");
+  };
+
+  const confirmarEliminarProducto = async () => {
+    if (!productoParaEliminar) return;
+
+    try {
+      setEliminandoProducto(true);
+      setErrorEliminar("");
+      await deleteProducto(productoParaEliminar.id);
+      setProductos((productosActuales) =>
+        productosActuales.filter(
+          (producto) => producto.id !== productoParaEliminar.id,
+        ),
+      );
+      cerrarModalEliminar();
+    } catch (error) {
+      console.error(error);
+      setErrorEliminar(
+        "No se pudo eliminar el producto. Verifica permisos o intenta nuevamente.",
+      );
+    } finally {
+      setEliminandoProducto(false);
     }
   };
 
@@ -268,7 +302,14 @@ export default function InventarioPage() {
                             edit_note
                           </span>
                         </button>
-                        <button className="p-1.5 text-on-surface-variant hover:text-error transition-colors cursor-pointer">
+                        <button
+                          className="p-1.5 text-on-surface-variant hover:text-error transition-colors cursor-pointer"
+                          onClick={() => {
+                            setProductoParaEliminar(producto);
+                            setErrorEliminar("");
+                          }}
+                          type="button"
+                        >
                           <span className="material-symbols-outlined text-lg">
                             delete
                           </span>
@@ -439,6 +480,75 @@ export default function InventarioPage() {
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+      {productoParaEliminar && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 px-4 py-8 backdrop-blur-[2px]">
+          <div className="w-full max-w-md rounded-xl bg-surface-container-lowest shadow-2xl shadow-black/20">
+            <div className="flex items-start justify-between gap-4 px-6 py-5">
+              <div className="flex items-start gap-4">
+                <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-error-container text-on-error-container">
+                  <span className="material-symbols-outlined text-xl">
+                    delete
+                  </span>
+                </div>
+                <div>
+                  <h3 className="font-headline text-lg font-extrabold text-on-surface">
+                    Eliminar producto
+                  </h3>
+                  <p className="mt-2 text-sm leading-6 text-on-surface-variant">
+                    ¿Seguro que quieres eliminar{" "}
+                    <span className="font-bold text-on-surface">
+                      {productoParaEliminar.nombre}
+                    </span>
+                    ?
+                  </p>
+                </div>
+              </div>
+              <button
+                aria-label="Cerrar modal"
+                className="rounded-lg p-2 text-on-surface-variant transition-colors hover:bg-surface-container-low hover:text-on-surface"
+                onClick={cerrarModalEliminar}
+                type="button"
+              >
+                <span className="material-symbols-outlined text-xl">close</span>
+              </button>
+            </div>
+
+            {errorEliminar && (
+              <div className="mx-6 rounded-lg bg-error-container px-4 py-3 text-xs font-semibold text-on-error-container">
+                {errorEliminar}
+              </div>
+            )}
+
+            <div className="flex flex-col-reverse gap-3 px-6 pb-6 pt-5 sm:flex-row sm:justify-end">
+              <button
+                className="rounded-lg px-5 py-2.5 text-sm font-bold text-on-surface-variant transition-colors hover:bg-surface-container-low disabled:cursor-not-allowed disabled:opacity-60"
+                disabled={eliminandoProducto}
+                onClick={cerrarModalEliminar}
+                type="button"
+              >
+                No, cancelar
+              </button>
+              <button
+                className="flex items-center justify-center gap-2 rounded-lg bg-error px-5 py-2.5 text-sm font-bold text-white shadow-lg shadow-error/20 transition-all hover:opacity-90 active:scale-95 disabled:cursor-not-allowed disabled:opacity-60"
+                disabled={eliminandoProducto}
+                onClick={confirmarEliminarProducto}
+                type="button"
+              >
+                {eliminandoProducto ? (
+                  <span className="material-symbols-outlined text-lg animate-spin">
+                    progress_activity
+                  </span>
+                ) : (
+                  <span className="material-symbols-outlined text-lg">
+                    delete
+                  </span>
+                )}
+                Sí, eliminar
+              </button>
+            </div>
           </div>
         </div>
       )}

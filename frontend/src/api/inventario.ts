@@ -26,3 +26,6 @@ export async function createProducto(
   const { data } = await client.post("/api/v1/inventario/productos", producto);
   return data;
 }
+export async function deleteProducto(id: number): Promise<void> {
+  await client.delete(`/api/v1/inventario/productos/${id}`);
+}
