@@ -63,3 +63,14 @@ async def actualizar_estado(envio_id: int, datos: EstadoEnvioUpdate, db: Session
     db.commit()
     db.refresh(envio)
     return envio
+
+
+# Eliminar envio
+@router.delete("/{envio_id}")
+async def eliminar_envio(envio_id: int, db: Session = Depends(get_db)):
+    envio = db.query(EnvioDB).filter(EnvioDB.id == envio_id).first()
+    if not envio:
+        raise HTTPException(status_code=404, detail="Envio no encontrado")
+    db.delete(envio)
+    db.commit()
+    return {"mensaje": "Envio eliminado correctamente"}
