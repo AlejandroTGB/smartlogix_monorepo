@@ -5,6 +5,7 @@ from sqlalchemy.orm import Session
 from database import get_db
 from models.pedido_model import DetallePedidoDB, PedidoDB
 from schemas.pedido_schema import EstadoPedidoUpdate, PedidoCreate, PedidoResponse
+from services.inventario_client import validar_productos_en_inventario
 
 router = APIRouter(
     prefix="/api/v1/pedidos",
@@ -32,6 +33,14 @@ async def obtener_pedido(pedido_id: int, db: Session = Depends(get_db)):
 # Crear pedido
 @router.post("", response_model=PedidoResponse, status_code=201)
 async def crear_pedido(datos: PedidoCreate, db: Session = Depends(get_db)):
+    cantidades_por_producto = {}
+
+    for producto in datos.productos:
+        cantidad_actual = cantidades_por_producto.get(producto.producto_id, 0)
+        cantidades_por_producto[producto.producto_id] = cantidad_actual + producto.cantidad
+
+    await validar_productos_en_inventario(cantidades_por_producto)
+
     nuevo_pedido = PedidoDB(
         cliente_id=datos.cliente_id,
         estado="pendiente"

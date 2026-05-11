@@ -81,8 +81,11 @@ services:
     restart: always
     ports:
       - "8002:8000" #8002 para que no choque con auth ni inventario
+    environment:
+      INVENTARIO_SERVICE_URL: http://api_inventario:8000
     depends_on:
       - db_pedidos
+      - api_inventario
 
   #============================
   # ENVIOS SERVICE
