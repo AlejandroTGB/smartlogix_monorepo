@@ -73,3 +73,14 @@ async def actualizar_estado(pedido_id: int, datos: EstadoPedidoUpdate, db: Sessi
     db.commit()
     db.refresh(pedido)
     return pedido
+
+
+# Eliminar pedido
+@router.delete("/{pedido_id}")
+async def eliminar_pedido(pedido_id: int, db: Session = Depends(get_db)):
+    pedido = db.query(PedidoDB).filter(PedidoDB.id == pedido_id).first()
+    if not pedido:
+        raise HTTPException(status_code=404, detail="Pedido no encontrado")
+    db.delete(pedido)
+    db.commit()
+    return {"mensaje": "Pedido eliminado correctamente"}
