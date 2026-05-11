@@ -3,6 +3,7 @@ import ProtectedRoute from "./components/ProtectedRoute";
 import DashboardLayout from "./components/DashboardLayout";
 import RegisterPage from "./pages/RegisterPage";
 import LoginPage from "./pages/LoginPage";
+import DashboardPage from "./pages/DashboardPage";
 function App() {
   return (
     <Routes>
@@ -17,14 +18,7 @@ function App() {
           </ProtectedRoute>
         }
       >
-        <Route
-          path="/dashboard"
-          element={
-            <div className="text-2xl font-headline font-bold">
-              Dashboard (en construcción)
-            </div>
-          }
-        />
+        <Route path="/dashboard" element={<DashboardPage />} />
         <Route
           path="/inventario"
           element={
