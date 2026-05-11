@@ -59,6 +59,32 @@ services:
       - db_inventario
 
   #============================
+  # PEDIDOS SERVICE
+  #============================
+  db_pedidos:
+    image: postgres:15
+    container_name: smartlogix_postgres_pedidos
+    restart: always
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: db_pedidos
+    ports:
+      - "5434:5432" #5434 para que no choque con auth ni inventario
+    volumes:
+      - postgres_data_pedidos:/var/lib/postgresql/data
+
+  api_pedidos:
+    build:
+      context: ./microservicios/pedidos_service
+    container_name: smartlogix_api_pedidos
+    restart: always
+    ports:
+      - "8002:8000" #8002 para que no choque con auth ni inventario
+    depends_on:
+      - db_pedidos
+
+  #============================
   # ENVIOS SERVICE
   #============================
   db_envios:
@@ -87,4 +113,5 @@ services:
 volumes:
   postgres_data_auth:
   postgres_data_inv:
+  postgres_data_pedidos:
   postgres_data_envios:
