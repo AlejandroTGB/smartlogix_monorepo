@@ -12,6 +12,12 @@ export interface ProductoCreate {
   precio: number;
   stock: number;
 }
+export interface ProductoUpdate {
+  nombre: string;
+  descripcion?: string | null;
+  precio: number;
+  stock: number;
+}
 export async function getProductos(): Promise<Producto[]> {
   const { data } = await client.get("/api/v1/inventario/productos");
   return data;
@@ -24,6 +30,16 @@ export async function createProducto(
   producto: ProductoCreate,
 ): Promise<Producto> {
   const { data } = await client.post("/api/v1/inventario/productos", producto);
+  return data;
+}
+export async function updateProducto(
+  id: number,
+  producto: ProductoUpdate,
+): Promise<Producto> {
+  const { data } = await client.put(
+    `/api/v1/inventario/productos/${id}`,
+    producto,
+  );
   return data;
 }
 export async function deleteProducto(id: number): Promise<void> {
