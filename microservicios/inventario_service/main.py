@@ -1,6 +1,11 @@
 from fastapi import FastAPI
 from scalar_fastapi import get_scalar_api_reference
 from routers.inventario_router import router as rutas_inventario
+from database import engine
+from models.producto_model import Base
+
+#crea las tablas solo si es que no existen
+Base.metadata.create_all(bind=engine)
 
 app = FastAPI(
     title="SmartLogix - Servicio de Inventario",
