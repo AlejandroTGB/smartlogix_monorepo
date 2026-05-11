@@ -13,37 +13,35 @@ envios = [
     {
         "id": 1,
         "pedido_id": 1,
-        "direccion_entrega": "Av. Siempre Viva 742",
-        "comuna": "Santiago",
+        "direccion_entrega": "Vivaldi 742",
+        "comuna": "Quilicura",
         "ciudad": "Santiago",
         "transportista": "Chilexpress",
-        "codigo_seguimiento": "SLX-00001",
+        "codigo_seguimiento": "ENV-00001",
         "estado": "pendiente"
     },
     {
         "id": 2,
         "pedido_id": 2,
-        "direccion_entrega": "Los Aromos 123",
+        "direccion_entrega": "Romario 123",
         "comuna": "Providencia",
         "ciudad": "Santiago",
         "transportista": "Starken",
-        "codigo_seguimiento": "SLX-00002",
+        "codigo_seguimiento": "ENV-00002",
         "estado": "en_transito"
     }
 ]
 
 estados_permitidos = ["pendiente", "preparando", "despachado", "en_transito", "entregado", "cancelado"]
 
-#============================
+
 # Listar envios
-#============================
 @router.get("", response_model=List[EnvioResponse])
 async def listar_envios():
     return envios
 
-#============================
+
 # Buscar envio por id
-#============================
 @router.get("/{envio_id}", response_model=EnvioResponse)
 async def obtener_envio(envio_id: int):
     for envio in envios:
@@ -52,9 +50,8 @@ async def obtener_envio(envio_id: int):
 
     raise HTTPException(status_code=404, detail="Envio no encontrado")
 
-#============================
+
 # Crear envio
-#============================
 @router.post("", response_model=EnvioResponse, status_code=201)
 async def crear_envio(datos: EnvioCreate):
     nuevo_id = envios[-1]["id"] + 1 if envios else 1
@@ -66,7 +63,7 @@ async def crear_envio(datos: EnvioCreate):
         "comuna": datos.comuna,
         "ciudad": datos.ciudad,
         "transportista": datos.transportista,
-        "codigo_seguimiento": f"SLX-{nuevo_id:05d}",
+        "codigo_seguimiento": f"ENV-{nuevo_id:05d}",
         "estado": "pendiente"
     }
 
@@ -74,9 +71,8 @@ async def crear_envio(datos: EnvioCreate):
 
     return nuevo_envio
 
-#============================
+
 # Actualizar estado
-#============================
 @router.put("/{envio_id}/estado", response_model=EnvioResponse)
 async def actualizar_estado(envio_id: int, datos: EstadoEnvioUpdate):
     if datos.estado not in estados_permitidos:
