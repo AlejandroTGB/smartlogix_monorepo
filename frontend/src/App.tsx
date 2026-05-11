@@ -5,6 +5,7 @@ import RegisterPage from "./pages/RegisterPage";
 import LoginPage from "./pages/LoginPage";
 import DashboardPage from "./pages/DashboardPage";
 import InventarioPage from "./pages/InventarioPage";
+import PedidosPage from "./pages/PedidosPage";
 
 function App() {
   return (
@@ -22,14 +23,7 @@ function App() {
       >
         <Route path="/dashboard" element={<DashboardPage />} />
         <Route path="/inventario" element={<InventarioPage />} />
-        <Route
-          path="/pedidos"
-          element={
-            <div className="text-2xl font-headline font-bold">
-              Pedidos (en construcción)
-            </div>
-          }
-        />
+        <Route path="/pedidos" element={<PedidosPage />} />
         <Route
           path="/envios"
           element={
