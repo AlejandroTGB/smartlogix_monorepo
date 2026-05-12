@@ -1,5 +1,13 @@
 import { useEffect, useState } from "react";
-import { getPedidos, type Pedido } from "../api/pedidos";
+import Modal from "../components/modal";
+import {
+  getPedidos,
+  createPedido,
+  updatePedidoEstado,
+  deletePedido,
+  type Pedido,
+  type PedidoCreate,
+} from "../api/pedidos";
 const estadoConfig: Record<string, { label: string; classes: string }> = {
   pendiente: {
     label: "Pendiente",
@@ -19,9 +27,36 @@ const estadoConfig: Record<string, { label: string; classes: string }> = {
     classes: "bg-error-container text-on-error-container",
   },
 };
+const estadosPermitidos = [
+  "pendiente",
+  "preparando",
+  "enviado",
+  "entregado",
+  "cancelado",
+];
 export default function PedidosPage() {
   const [pedidos, setPedidos] = useState<Pedido[]>([]);
   const [loading, setLoading] = useState(true);
+  // Crear
+  const [modalCrearAbierto, setModalCrearAbierto] = useState(false);
+  const [guardando, setGuardando] = useState(false);
+  const [errorCrear, setErrorCrear] = useState("");
+  const [nuevoClienteId, setNuevoClienteId] = useState("");
+  const [nuevoProductoId, setNuevoProductoId] = useState("");
+  const [nuevoCantidad, setNuevoCantidad] = useState("");
+  // Estado
+  const [pedidoEditarEstado, setPedidoEditarEstado] = useState<Pedido | null>(
+    null,
+  );
+  const [nuevoEstado, setNuevoEstado] = useState("");
+  const [guardandoEstado, setGuardandoEstado] = useState(false);
+  const [errorEstado, setErrorEstado] = useState("");
+  // Eliminar
+  const [pedidoParaEliminar, setPedidoParaEliminar] = useState<Pedido | null>(
+    null,
+  );
+  const [eliminando, setEliminando] = useState(false);
+  const [errorEliminar, setErrorEliminar] = useState("");
   useEffect(() => {
     getPedidos()
       .then(setPedidos)
@@ -36,6 +71,92 @@ export default function PedidosPage() {
   const entregados = pedidos.filter((p) => p.estado === "entregado").length;
   const tasaEntrega =
     pedidos.length > 0 ? Math.round((entregados / pedidos.length) * 100) : 0;
+  // Crear pedido
+  const cerrarModalCrear = () => {
+    if (guardando) return;
+    setModalCrearAbierto(false);
+    setNuevoClienteId("");
+    setNuevoProductoId("");
+    setNuevoCantidad("");
+    setErrorCrear("");
+  };
+  const guardarPedido = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setErrorCrear("");
+    const datos: PedidoCreate = {
+      cliente_id: Number(nuevoClienteId),
+      productos: [
+        {
+          producto_id: Number(nuevoProductoId),
+          cantidad: Number(nuevoCantidad),
+        },
+      ],
+    };
+    if (!datos.cliente_id || Number.isNaN(datos.cliente_id)) {
+      setErrorCrear("El ID del cliente es obligatorio.");
+      return;
+    }
+    if (
+      !datos.productos[0].producto_id ||
+      Number.isNaN(datos.productos[0].producto_id)
+    ) {
+      setErrorCrear("El ID del producto es obligatorio.");
+      return;
+    }
+    if (
+      !datos.productos[0].cantidad ||
+      Number.isNaN(datos.productos[0].cantidad) ||
+      datos.productos[0].cantidad <= 0
+    ) {
+      setErrorCrear("La cantidad debe ser mayor a 0.");
+      return;
+    }
+    try {
+      setGuardando(true);
+      const creado = await createPedido(datos);
+      setPedidos((prev) => [...prev, creado]);
+      cerrarModalCrear();
+    } catch {
+      setErrorCrear("No se pudo crear el pedido. Verifica permisos o datos.");
+    } finally {
+      setGuardando(false);
+    }
+  };
+  // Cambiar estado
+  const guardarEstado = async () => {
+    if (!pedidoEditarEstado || !nuevoEstado) return;
+    setErrorEstado("");
+    try {
+      setGuardandoEstado(true);
+      const actualizado = await updatePedidoEstado(pedidoEditarEstado.id, {
+        estado: nuevoEstado,
+      });
+      setPedidos((prev) =>
+        prev.map((p) => (p.id === actualizado.id ? actualizado : p)),
+      );
+      setPedidoEditarEstado(null);
+      setNuevoEstado("");
+    } catch {
+      setErrorEstado("No se pudo actualizar el estado.");
+    } finally {
+      setGuardandoEstado(false);
+    }
+  };
+  // Eliminar
+  const confirmarEliminar = async () => {
+    if (!pedidoParaEliminar) return;
+    try {
+      setEliminando(true);
+      setErrorEliminar("");
+      await deletePedido(pedidoParaEliminar.id);
+      setPedidos((prev) => prev.filter((p) => p.id !== pedidoParaEliminar.id));
+      setPedidoParaEliminar(null);
+    } catch {
+      setErrorEliminar("No se pudo eliminar el pedido.");
+    } finally {
+      setEliminando(false);
+    }
+  };
   return (
     <div className="space-y-10">
       {/* Header */}
@@ -47,7 +168,7 @@ export default function PedidosPage() {
           Seguimiento y control de órdenes en el sistema.
         </p>
       </div>
-      {/* Summary Metrics */}
+      {/* Metrics */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
         <div className="bg-surface-container-low p-6 rounded-xl group hover:bg-surface-container-high transition-all">
           <p className="text-[10px] font-bold text-on-surface-variant uppercase tracking-wider mb-2">
@@ -104,7 +225,7 @@ export default function PedidosPage() {
           </div>
         </div>
       </div>
-      {/* Orders Table */}
+      {/* Table */}
       <div className="bg-surface-container-lowest rounded-xl p-2">
         <div className="flex flex-col md:flex-row justify-between items-center p-4 gap-4">
           <div className="flex items-center gap-3 w-full md:w-auto">
@@ -119,7 +240,10 @@ export default function PedidosPage() {
               />
             </div>
           </div>
-          <button className="w-full md:w-auto flex items-center justify-center gap-2 px-6 py-2.5 bg-secondary text-white rounded-xl text-sm font-bold shadow-lg shadow-secondary/20 hover:opacity-90 transition-all active:scale-95 cursor-pointer">
+          <button
+            className="w-full md:w-auto flex items-center justify-center gap-2 px-6 py-2.5 bg-secondary text-white rounded-xl text-sm font-bold shadow-lg shadow-secondary/20 hover:opacity-90 transition-all active:scale-95 cursor-pointer"
+            onClick={() => setModalCrearAbierto(true)}
+          >
             <span className="material-symbols-outlined text-sm">add</span>
             Nuevo Pedido
           </button>
@@ -185,22 +309,25 @@ export default function PedidosPage() {
                           : "productos"}
                       </td>
                       <td className="px-4 py-3">
-                        <span
-                          className={`px-3 py-1 text-[10px] font-extrabold rounded-full uppercase ${estado.classes}`}
+                        <button
+                          className={`px-3 py-1 text-[10px] font-extrabold rounded-full uppercase cursor-pointer hover:opacity-80 ${estado.classes}`}
+                          onClick={() => {
+                            setPedidoEditarEstado(pedido);
+                            setNuevoEstado(pedido.estado);
+                            setErrorEstado("");
+                          }}
                         >
                           {estado.label}
-                        </span>
+                        </button>
                       </td>
                       <td className="px-4 py-3 text-right pr-6 rounded-r-lg">
                         <div className="flex items-center justify-end gap-2">
-                          <button className="p-1.5 text-on-surface-variant hover:text-primary transition-colors cursor-pointer">
+                          <button
+                            className="p-1.5 text-on-surface-variant hover:text-error transition-colors cursor-pointer"
+                            onClick={() => setPedidoParaEliminar(pedido)}
+                          >
                             <span className="material-symbols-outlined text-lg">
-                              visibility
-                            </span>
-                          </button>
-                          <button className="p-1.5 text-on-surface-variant hover:text-primary transition-colors cursor-pointer">
-                            <span className="material-symbols-outlined text-lg">
-                              edit_note
+                              delete
                             </span>
                           </button>
                         </div>
@@ -213,6 +340,239 @@ export default function PedidosPage() {
           </div>
         )}
       </div>
+      {/* Modal Crear */}
+      <Modal
+        open={modalCrearAbierto}
+        onClose={cerrarModalCrear}
+        title="Nuevo pedido"
+        subtitle="Registra un nuevo pedido en el sistema."
+      >
+        <form className="space-y-5 px-6 py-6" onSubmit={guardarPedido}>
+          <div className="space-y-2">
+            <label
+              className="text-[11px] font-bold uppercase tracking-wider text-on-surface-variant"
+              htmlFor="pedido-cliente"
+            >
+              ID del Cliente
+            </label>
+            <input
+              className="w-full rounded-lg bg-surface-container-low px-4 py-3 text-sm text-on-surface outline-none ring-1 ring-transparent transition focus:ring-2 focus:ring-secondary"
+              id="pedido-cliente"
+              min="1"
+              onChange={(e) => setNuevoClienteId(e.target.value)}
+              placeholder="Ej: 1"
+              required
+              type="number"
+              value={nuevoClienteId}
+            />
+          </div>
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+            <div className="space-y-2">
+              <label
+                className="text-[11px] font-bold uppercase tracking-wider text-on-surface-variant"
+                htmlFor="pedido-producto"
+              >
+                ID del Producto
+              </label>
+              <input
+                className="w-full rounded-lg bg-surface-container-low px-4 py-3 text-sm text-on-surface outline-none ring-1 ring-transparent transition focus:ring-2 focus:ring-secondary"
+                id="pedido-producto"
+                min="1"
+                onChange={(e) => setNuevoProductoId(e.target.value)}
+                placeholder="Ej: 1"
+                required
+                type="number"
+                value={nuevoProductoId}
+              />
+            </div>
+            <div className="space-y-2">
+              <label
+                className="text-[11px] font-bold uppercase tracking-wider text-on-surface-variant"
+                htmlFor="pedido-cantidad"
+              >
+                Cantidad
+              </label>
+              <input
+                className="w-full rounded-lg bg-surface-container-low px-4 py-3 text-sm text-on-surface outline-none ring-1 ring-transparent transition focus:ring-2 focus:ring-secondary"
+                id="pedido-cantidad"
+                min="1"
+                onChange={(e) => setNuevoCantidad(e.target.value)}
+                placeholder="Ej: 5"
+                required
+                type="number"
+                value={nuevoCantidad}
+              />
+            </div>
+          </div>
+          {errorCrear && (
+            <div className="rounded-lg bg-error-container px-4 py-3 text-xs font-semibold text-on-error-container">
+              {errorCrear}
+            </div>
+          )}
+          <div className="flex flex-col-reverse gap-3 pt-2 sm:flex-row sm:justify-end">
+            <button
+              className="rounded-lg px-5 py-2.5 text-sm font-bold text-on-surface-variant transition-colors hover:bg-surface-container-low disabled:cursor-not-allowed disabled:opacity-60"
+              disabled={guardando}
+              onClick={cerrarModalCrear}
+              type="button"
+            >
+              Cancelar
+            </button>
+            <button
+              className="flex items-center justify-center gap-2 rounded-lg bg-secondary px-5 py-2.5 text-sm font-bold text-white shadow-lg shadow-secondary/20 transition-all hover:opacity-90 active:scale-95 disabled:cursor-not-allowed disabled:opacity-60"
+              disabled={guardando}
+              type="submit"
+            >
+              {guardando ? (
+                <span className="material-symbols-outlined text-lg animate-spin">
+                  progress_activity
+                </span>
+              ) : (
+                <span className="material-symbols-outlined text-lg">add</span>
+              )}
+              Crear pedido
+            </button>
+          </div>
+        </form>
+      </Modal>
+      {/* Modal Cambiar Estado */}
+      <Modal
+        open={!!pedidoEditarEstado}
+        onClose={() => {
+          setPedidoEditarEstado(null);
+          setNuevoEstado("");
+          setErrorEstado("");
+        }}
+        title="Cambiar estado del pedido"
+        subtitle={
+          pedidoEditarEstado
+            ? `Pedido #${pedidoEditarEstado.id.toString().padStart(4, "0")}`
+            : ""
+        }
+      >
+        <div className="px-6 py-6">
+          <div className="space-y-4">
+            <div className="space-y-2">
+              <label
+                className="text-[11px] font-bold uppercase tracking-wider text-on-surface-variant"
+                htmlFor="pedido-estado"
+              >
+                Nuevo estado
+              </label>
+              <select
+                className="w-full rounded-lg bg-surface-container-low px-4 py-3 text-sm text-on-surface outline-none ring-1 ring-transparent transition focus:ring-2 focus:ring-secondary cursor-pointer"
+                id="pedido-estado"
+                onChange={(e) => setNuevoEstado(e.target.value)}
+                value={nuevoEstado}
+              >
+                {estadosPermitidos.map((estado) => (
+                  <option key={estado} value={estado}>
+                    {estado.charAt(0).toUpperCase() +
+                      estado.slice(1).replace("_", " ")}
+                  </option>
+                ))}
+              </select>
+            </div>
+            {errorEstado && (
+              <div className="rounded-lg bg-error-container px-4 py-3 text-xs font-semibold text-on-error-container">
+                {errorEstado}
+              </div>
+            )}
+          </div>
+          <div className="flex flex-col-reverse gap-3 pt-6 sm:flex-row sm:justify-end">
+            <button
+              className="rounded-lg px-5 py-2.5 text-sm font-bold text-on-surface-variant transition-colors hover:bg-surface-container-low disabled:cursor-not-allowed disabled:opacity-60"
+              disabled={guardandoEstado}
+              onClick={() => {
+                setPedidoEditarEstado(null);
+                setNuevoEstado("");
+                setErrorEstado("");
+              }}
+              type="button"
+            >
+              Cancelar
+            </button>
+            <button
+              className="flex items-center justify-center gap-2 rounded-lg bg-secondary px-5 py-2.5 text-sm font-bold text-white shadow-lg shadow-secondary/20 transition-all hover:opacity-90 active:scale-95 disabled:cursor-not-allowed disabled:opacity-60"
+              disabled={guardandoEstado || !nuevoEstado}
+              onClick={guardarEstado}
+              type="button"
+            >
+              {guardandoEstado ? (
+                <span className="material-symbols-outlined text-lg animate-spin">
+                  progress_activity
+                </span>
+              ) : (
+                <span className="material-symbols-outlined text-lg">
+                  edit_note
+                </span>
+              )}
+              Guardar cambios
+            </button>
+          </div>
+        </div>
+      </Modal>
+      {/* Modal Eliminar */}
+      <Modal
+        open={!!pedidoParaEliminar}
+        onClose={() => {
+          setPedidoParaEliminar(null);
+          setErrorEliminar("");
+        }}
+        title="Eliminar pedido"
+      >
+        <div className="px-6 py-6">
+          <div className="flex items-start gap-4 mb-2">
+            <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-error-container">
+              <span className="material-symbols-outlined text-xl text-on-error-container">
+                delete
+              </span>
+            </div>
+            <p className="text-sm text-on-surface-variant leading-6 pt-2">
+              ¿Seguro que quieres eliminar el pedido{" "}
+              <span className="font-bold text-on-surface">
+                #{pedidoParaEliminar?.id.toString().padStart(4, "0")}
+              </span>
+              ? Esta acción no se puede deshacer.
+            </p>
+          </div>
+          {errorEliminar && (
+            <div className="mt-4 rounded-lg bg-error-container px-4 py-3 text-xs font-semibold text-on-error-container">
+              {errorEliminar}
+            </div>
+          )}
+          <div className="flex flex-col-reverse gap-3 pt-6 sm:flex-row sm:justify-end">
+            <button
+              className="rounded-lg px-5 py-2.5 text-sm font-bold text-on-surface-variant transition-colors hover:bg-surface-container-low disabled:cursor-not-allowed disabled:opacity-60"
+              disabled={eliminando}
+              onClick={() => {
+                setPedidoParaEliminar(null);
+                setErrorEliminar("");
+              }}
+              type="button"
+            >
+              No, cancelar
+            </button>
+            <button
+              className="flex items-center justify-center gap-2 rounded-lg bg-error px-5 py-2.5 text-sm font-bold text-white shadow-lg shadow-error/20 transition-all hover:opacity-90 active:scale-95 disabled:cursor-not-allowed disabled:opacity-60"
+              disabled={eliminando}
+              onClick={confirmarEliminar}
+              type="button"
+            >
+              {eliminando ? (
+                <span className="material-symbols-outlined text-lg animate-spin">
+                  progress_activity
+                </span>
+              ) : (
+                <span className="material-symbols-outlined text-lg">
+                  delete
+                </span>
+              )}
+              Sí, eliminar
+            </button>
+          </div>
+        </div>
+      </Modal>
     </div>
   );
 }
