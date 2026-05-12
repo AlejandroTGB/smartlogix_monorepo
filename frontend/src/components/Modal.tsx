@@ -23,7 +23,7 @@ export default function Modal({
         className="w-full max-w-lg rounded-xl bg-surface-container-lowest shadow-2xl shadow-black/20"
         onClick={(e) => e.stopPropagation()}
       >
-        <div className="flex items-start justify-between gap-4 border-b border-outline-variant px-6 py-5">
+        <div className="flex items-center justify-between gap-4 border-b border-outline-variant px-6 py-4">
           <div>
             <h3 className="font-headline text-lg font-extrabold text-on-surface">
               {title}
