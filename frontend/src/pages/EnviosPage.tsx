@@ -42,6 +42,7 @@ const estadosPermitidos = [
 export default function EnviosPage() {
   const [envios, setEnvios] = useState<Envio[]>([]);
   const [loading, setLoading] = useState(true);
+  const [busqueda, setBusqueda] = useState("");
   // Crear
   const [modalCrearAbierto, setModalCrearAbierto] = useState(false);
   const [guardando, setGuardando] = useState(false);
@@ -72,6 +73,18 @@ export default function EnviosPage() {
   }, []);
   const enTransito = envios.filter((e) => e.estado === "en_transito").length;
   const entregados = envios.filter((e) => e.estado === "entregado").length;
+
+  const enviosFiltrados = busqueda
+    ? envios.filter(
+        (e) =>
+          e.codigo_seguimiento.toLowerCase().includes(busqueda.toLowerCase()) ||
+          e.direccion_entrega.toLowerCase().includes(busqueda.toLowerCase()) ||
+          e.comuna.toLowerCase().includes(busqueda.toLowerCase()) ||
+          e.ciudad.toLowerCase().includes(busqueda.toLowerCase()) ||
+          (e.transportista &&
+            e.transportista.toLowerCase().includes(busqueda.toLowerCase())),
+      )
+    : envios;
   // Crear envío
   const cerrarModalCrear = () => {
     if (guardando) return;
@@ -234,6 +247,8 @@ export default function EnviosPage() {
                 className="w-full pl-9 pr-4 py-2 bg-surface-container-low border-none rounded-lg text-xs focus:ring-2 focus:ring-secondary outline-none"
                 placeholder="Buscar por código o destino..."
                 type="text"
+                value={busqueda}
+                onChange={(e) => setBusqueda(e.target.value)}
               />
             </div>
             <button className="flex items-center gap-2 px-4 py-2 bg-surface-container-low rounded-lg text-xs font-semibold text-on-surface hover:bg-surface-container-high transition-colors cursor-pointer">
@@ -260,7 +275,7 @@ export default function EnviosPage() {
               progress_activity
             </span>
           </div>
-        ) : envios.length === 0 ? (
+        ) : enviosFiltrados.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-20 text-on-surface-variant">
             <span className="material-symbols-outlined text-5xl mb-4">
               local_shipping
@@ -291,7 +306,7 @@ export default function EnviosPage() {
                 </tr>
               </thead>
               <tbody>
-                {envios.map((envio) => {
+                {enviosFiltrados.map((envio) => {
                   const estado = estadoConfig[envio.estado] || {
                     label: envio.estado,
                     classes:

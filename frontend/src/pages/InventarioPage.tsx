@@ -18,6 +18,7 @@ const productoInicial = {
 export default function InventarioPage() {
   const [productos, setProductos] = useState<Producto[]>([]);
   const [loading, setLoading] = useState(true);
+  const [busqueda, setBusqueda] = useState("");
   // Crear
   const [modalCrearAbierto, setModalCrearAbierto] = useState(false);
   const [guardandoProducto, setGuardandoProducto] = useState(false);
@@ -41,6 +42,14 @@ export default function InventarioPage() {
       .catch(console.error)
       .finally(() => setLoading(false));
   }, []);
+  const productosFiltrados = busqueda
+    ? productos.filter(
+        (p) =>
+          p.nombre.toLowerCase().includes(busqueda.toLowerCase()) ||
+          (p.descripcion && p.descripcion.toLowerCase().includes(busqueda.toLowerCase()))
+      )
+    : productos;
+
   // --- Crear ---
   const cerrarModalCrear = () => {
     if (guardandoProducto) return;
@@ -253,6 +262,8 @@ export default function InventarioPage() {
                 className="w-full pl-9 pr-4 py-2 bg-surface-container-low border-none rounded-lg text-xs focus:ring-2 focus:ring-secondary outline-none"
                 placeholder="Filtrar SKU..."
                 type="text"
+                value={busqueda}
+                onChange={(e) => setBusqueda(e.target.value)}
               />
             </div>
             <button className="flex items-center gap-2 px-4 py-2 bg-surface-container-low rounded-lg text-xs font-semibold text-on-surface hover:bg-surface-container-high transition-colors cursor-pointer">
@@ -279,7 +290,7 @@ export default function InventarioPage() {
               progress_activity
             </span>
           </div>
-        ) : productos.length === 0 ? (
+        ) : productosFiltrados.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-20 text-on-surface-variant">
             <span className="material-symbols-outlined text-5xl mb-4">
               inventory_2
@@ -313,7 +324,7 @@ export default function InventarioPage() {
                 </tr>
               </thead>
               <tbody>
-                {productos.map((producto) => (
+                {productosFiltrados.map((producto) => (
                   <tr
                     key={producto.id}
                     className="group hover:bg-surface-container-low transition-colors"

@@ -37,6 +37,7 @@ const estadosPermitidos = [
 export default function PedidosPage() {
   const [pedidos, setPedidos] = useState<Pedido[]>([]);
   const [loading, setLoading] = useState(true);
+  const [busqueda, setBusqueda] = useState("");
   // Crear
   const [modalCrearAbierto, setModalCrearAbierto] = useState(false);
   const [guardando, setGuardando] = useState(false);
@@ -71,6 +72,15 @@ export default function PedidosPage() {
   const entregados = pedidos.filter((p) => p.estado === "entregado").length;
   const tasaEntrega =
     pedidos.length > 0 ? Math.round((entregados / pedidos.length) * 100) : 0;
+
+  const pedidosFiltrados = busqueda
+    ? pedidos.filter(
+        (p) =>
+          `#${p.id.toString().padStart(4, "0")}`.includes(busqueda) ||
+          `Cliente #${p.cliente_id}`.toLowerCase().includes(busqueda.toLowerCase()) ||
+          p.estado.toLowerCase().includes(busqueda.toLowerCase())
+      )
+    : pedidos;
   // Crear pedido
   const cerrarModalCrear = () => {
     if (guardando) return;
@@ -237,6 +247,8 @@ export default function PedidosPage() {
                 className="w-full pl-9 pr-4 py-2 bg-surface-container-low border-none rounded-lg text-xs focus:ring-2 focus:ring-secondary outline-none"
                 placeholder="Buscar pedido..."
                 type="text"
+                value={busqueda}
+                onChange={(e) => setBusqueda(e.target.value)}
               />
             </div>
           </div>
@@ -254,7 +266,7 @@ export default function PedidosPage() {
               progress_activity
             </span>
           </div>
-        ) : pedidos.length === 0 ? (
+        ) : pedidosFiltrados.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-20 text-on-surface-variant">
             <span className="material-symbols-outlined text-5xl mb-4">
               shopping_cart
@@ -285,7 +297,7 @@ export default function PedidosPage() {
                 </tr>
               </thead>
               <tbody>
-                {pedidos.map((pedido) => {
+                {pedidosFiltrados.map((pedido) => {
                   const estado = estadoConfig[pedido.estado] || {
                     label: pedido.estado,
                     classes:
