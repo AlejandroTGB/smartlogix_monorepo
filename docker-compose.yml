@@ -131,6 +131,21 @@ services:
       - api_pedidos
       - api_envios
 
+  #============================
+  # FRONTEND
+  #============================
+  frontend:
+    build:
+      context: ./frontend
+    container_name: smartlogix_frontend
+    restart: always
+    ports:
+      - "5173:80"
+    environment:
+      - VITE_API_URL=http://localhost:8080
+    depends_on:
+      - gateway
+
 volumes:
   postgres_data_auth:
   postgres_data_inv:
