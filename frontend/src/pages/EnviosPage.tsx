@@ -43,6 +43,8 @@ export default function EnviosPage() {
   const [envios, setEnvios] = useState<Envio[]>([]);
   const [loading, setLoading] = useState(true);
   const [busqueda, setBusqueda] = useState("");
+  const [filtroEstado, setFiltroEstado] = useState("");
+  const [filtroAbierto, setFiltroAbierto] = useState(false);
   // Crear
   const [modalCrearAbierto, setModalCrearAbierto] = useState(false);
   const [guardando, setGuardando] = useState(false);
@@ -74,17 +76,18 @@ export default function EnviosPage() {
   const enTransito = envios.filter((e) => e.estado === "en_transito").length;
   const entregados = envios.filter((e) => e.estado === "entregado").length;
 
-  const enviosFiltrados = busqueda
-    ? envios.filter(
-        (e) =>
-          e.codigo_seguimiento.toLowerCase().includes(busqueda.toLowerCase()) ||
-          e.direccion_entrega.toLowerCase().includes(busqueda.toLowerCase()) ||
-          e.comuna.toLowerCase().includes(busqueda.toLowerCase()) ||
-          e.ciudad.toLowerCase().includes(busqueda.toLowerCase()) ||
-          (e.transportista &&
-            e.transportista.toLowerCase().includes(busqueda.toLowerCase())),
-      )
-    : envios;
+  const enviosFiltrados = envios.filter((e) => {
+    if (filtroEstado && e.estado !== filtroEstado) return false;
+    if (!busqueda) return true;
+    const b = busqueda.toLowerCase();
+    return (
+      e.codigo_seguimiento.toLowerCase().includes(b) ||
+      e.direccion_entrega.toLowerCase().includes(b) ||
+      e.comuna.toLowerCase().includes(b) ||
+      e.ciudad.toLowerCase().includes(b) ||
+      (e.transportista && e.transportista.toLowerCase().includes(b))
+    );
+  });
   // Crear envío
   const cerrarModalCrear = () => {
     if (guardando) return;
@@ -251,15 +254,47 @@ export default function EnviosPage() {
                 onChange={(e) => setBusqueda(e.target.value)}
               />
             </div>
-            <button className="flex items-center gap-2 px-4 py-2 bg-surface-container-low rounded-lg text-xs font-semibold text-on-surface hover:bg-surface-container-high transition-colors cursor-pointer">
-              <span className="material-symbols-outlined text-sm">
-                filter_list
-              </span>
-              Estado
-              <span className="material-symbols-outlined text-sm">
-                expand_more
-              </span>
-            </button>
+            <div className="relative">
+              <button
+                className="flex items-center gap-2 px-4 py-2 rounded-lg text-xs font-semibold transition-colors cursor-pointer bg-surface-container-low text-on-surface hover:bg-surface-container-high"
+                onClick={() => setFiltroAbierto(!filtroAbierto)}
+              >
+                <span className="material-symbols-outlined text-sm">
+                  filter_list
+                </span>
+                {filtroEstado
+                  ? estadoConfig[filtroEstado]?.label || filtroEstado
+                  : "Estado"}
+                <span className="material-symbols-outlined text-sm">
+                  {filtroAbierto ? "expand_less" : "expand_more"}
+                </span>
+              </button>
+              {filtroAbierto && (
+                <div className="absolute top-full left-0 mt-1 bg-surface-container-lowest border border-outline-variant rounded-lg shadow-lg z-10 min-w-[180px] py-1">
+                  <button
+                    className={`w-full px-4 py-2.5 text-xs font-semibold text-left cursor-pointer transition-colors hover:bg-surface-container-high ${!filtroEstado ? "text-secondary" : "text-on-surface"}`}
+                    onClick={() => {
+                      setFiltroEstado("");
+                      setFiltroAbierto(false);
+                    }}
+                  >
+                    Todos
+                  </button>
+                  {estadosPermitidos.map((estado) => (
+                    <button
+                      key={estado}
+                      className={`w-full px-4 py-2.5 text-xs font-semibold text-left cursor-pointer transition-colors hover:bg-surface-container-high ${filtroEstado === estado ? "text-secondary" : "text-on-surface"}`}
+                      onClick={() => {
+                        setFiltroEstado(estado);
+                        setFiltroAbierto(false);
+                      }}
+                    >
+                      {estadoConfig[estado]?.label || estado}
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
           </div>
           <button
             className="w-full md:w-auto flex items-center justify-center gap-2 px-6 py-2.5 bg-secondary text-white rounded-xl text-sm font-bold shadow-lg shadow-secondary/20 hover:opacity-90 transition-all active:scale-95 cursor-pointer"

@@ -46,7 +46,8 @@ export default function InventarioPage() {
     ? productos.filter(
         (p) =>
           p.nombre.toLowerCase().includes(busqueda.toLowerCase()) ||
-          (p.descripcion && p.descripcion.toLowerCase().includes(busqueda.toLowerCase()))
+          (p.descripcion &&
+            p.descripcion.toLowerCase().includes(busqueda.toLowerCase())),
       )
     : productos;
 
@@ -260,7 +261,7 @@ export default function InventarioPage() {
               </span>
               <input
                 className="w-full pl-9 pr-4 py-2 bg-surface-container-low border-none rounded-lg text-xs focus:ring-2 focus:ring-secondary outline-none"
-                placeholder="Filtrar SKU..."
+                placeholder="Buscar por nombre..."
                 type="text"
                 value={busqueda}
                 onChange={(e) => setBusqueda(e.target.value)}
