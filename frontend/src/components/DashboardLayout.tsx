@@ -73,17 +73,7 @@ export default function DashboardLayout() {
       {/* Main content */}
       <main className="flex-1 flex flex-col overflow-y-auto">
         {/* Top bar */}
-        <header className="sticky top-0 z-40 h-16 bg-surface-container-lowest/80 backdrop-blur-md flex items-center justify-between px-8 border-b border-surface-container-high">
-          <div className="flex items-center gap-2">
-            <span className="material-symbols-outlined text-on-surface-variant">
-              search
-            </span>
-            <input
-              className="bg-transparent border-none text-sm focus:ring-0 outline-none placeholder:text-on-surface-variant"
-              placeholder="Buscar..."
-              type="text"
-            />
-          </div>
+        <header className="sticky top-0 z-40 h-16 bg-surface-container-lowest/80 backdrop-blur-md flex items-center justify-end px-8 border-b border-surface-container-high">
           <div className="flex items-center gap-4">
             <span className="text-xs font-bold text-on-surface-variant uppercase tracking-wider">
               {user?.rol || ""}
