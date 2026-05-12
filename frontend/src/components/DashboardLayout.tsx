@@ -14,23 +14,16 @@ export default function DashboardLayout() {
       {/* Sidebar */}
       <aside className="hidden md:flex flex-col h-screen w-64 bg-surface border-r border-surface-container-high p-4 gap-2">
         {/* Logo */}
-        <div className="flex items-center gap-3 px-2 py-4 mb-6">
-          <div className="w-10 h-10 bg-gradient-to-br from-primary-container to-primary rounded-xl flex items-center justify-center text-white shadow-lg">
-            <span
-              className="material-symbols-outlined text-2xl"
-              style={{ fontVariationSettings: "'FILL' 1" }}
-            >
-              rocket_launch
-            </span>
-          </div>
-          <div>
-            <h1 className="text-xl font-bold tracking-tight text-on-surface leading-none">
-              Smart Logix
-            </h1>
-            <p className="text-[10px] font-extrabold tracking-[0.1em] text-secondary uppercase mt-1">
-              Navegador de Precisión
-            </p>
-          </div>
+        <div className="flex items-center gap-2 px-2 py-4 mb-6">
+          <span
+            className="material-symbols-outlined text-secondary-fixed text-3xl"
+            style={{ fontVariationSettings: "'FILL' 1" }}
+          >
+            rocket_launch
+          </span>
+          <span className="font-headline font-extrabold text-2xl tracking-tight text-on-surface">
+            Smart Logix
+          </span>
         </div>
         {/* Navigation */}
         <nav className="flex-1 space-y-1">
