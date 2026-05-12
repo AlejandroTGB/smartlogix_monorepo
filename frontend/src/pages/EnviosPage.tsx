@@ -1,5 +1,13 @@
 import { useEffect, useState } from "react";
-import { getEnvios, type Envio } from "../api/envios";
+import Modal from "../components/modal";
+import {
+  getEnvios,
+  createEnvio,
+  updateEnvioEstado,
+  deleteEnvio,
+  type Envio,
+  type EnvioCreate,
+} from "../api/envios";
 const estadoConfig: Record<string, { label: string; classes: string }> = {
   pendiente: {
     label: "Pendiente",
@@ -8,11 +16,11 @@ const estadoConfig: Record<string, { label: string; classes: string }> = {
   preparando: { label: "Preparando", classes: "bg-blue-100 text-blue-700" },
   despachado: {
     label: "Despachado",
-    classes: "bg-surface-container-high text-on-surface",
+    classes: "bg-purple-100 text-purple-700",
   },
   en_transito: {
     label: "En Tránsito",
-    classes: "bg-secondary-container text-on-secondary-container",
+    classes: "bg-amber-100 text-amber-700",
   },
   entregado: {
     label: "Entregado",
@@ -23,9 +31,39 @@ const estadoConfig: Record<string, { label: string; classes: string }> = {
     classes: "bg-error-container text-on-error-container",
   },
 };
+const estadosPermitidos = [
+  "pendiente",
+  "preparando",
+  "despachado",
+  "en_transito",
+  "entregado",
+  "cancelado",
+];
 export default function EnviosPage() {
   const [envios, setEnvios] = useState<Envio[]>([]);
   const [loading, setLoading] = useState(true);
+  // Crear
+  const [modalCrearAbierto, setModalCrearAbierto] = useState(false);
+  const [guardando, setGuardando] = useState(false);
+  const [errorCrear, setErrorCrear] = useState("");
+  const [nuevoPedidoId, setNuevoPedidoId] = useState("");
+  const [nuevaDireccion, setNuevaDireccion] = useState("");
+  const [nuevaComuna, setNuevaComuna] = useState("");
+  const [nuevaCiudad, setNuevaCiudad] = useState("");
+  const [nuevoTransportista, setNuevoTransportista] = useState("");
+  // Estado
+  const [envioEditarEstado, setEnvioEditarEstado] = useState<Envio | null>(
+    null,
+  );
+  const [nuevoEstado, setNuevoEstado] = useState("");
+  const [guardandoEstado, setGuardandoEstado] = useState(false);
+  const [errorEstado, setErrorEstado] = useState("");
+  // Eliminar
+  const [envioParaEliminar, setEnvioParaEliminar] = useState<Envio | null>(
+    null,
+  );
+  const [eliminando, setEliminando] = useState(false);
+  const [errorEliminar, setErrorEliminar] = useState("");
   useEffect(() => {
     getEnvios()
       .then(setEnvios)
@@ -34,6 +72,89 @@ export default function EnviosPage() {
   }, []);
   const enTransito = envios.filter((e) => e.estado === "en_transito").length;
   const entregados = envios.filter((e) => e.estado === "entregado").length;
+  // Crear envío
+  const cerrarModalCrear = () => {
+    if (guardando) return;
+    setModalCrearAbierto(false);
+    setNuevoPedidoId("");
+    setNuevaDireccion("");
+    setNuevaComuna("");
+    setNuevaCiudad("");
+    setNuevoTransportista("");
+    setErrorCrear("");
+  };
+  const guardarEnvio = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setErrorCrear("");
+    const datos: EnvioCreate = {
+      pedido_id: Number(nuevoPedidoId),
+      direccion_entrega: nuevaDireccion,
+      comuna: nuevaComuna,
+      ciudad: nuevaCiudad,
+      transportista: nuevoTransportista || undefined,
+    };
+    if (!datos.pedido_id || Number.isNaN(datos.pedido_id)) {
+      setErrorCrear("El ID del pedido es obligatorio.");
+      return;
+    }
+    if (!datos.direccion_entrega.trim()) {
+      setErrorCrear("La dirección de entrega es obligatoria.");
+      return;
+    }
+    if (!datos.comuna.trim()) {
+      setErrorCrear("La comuna es obligatoria.");
+      return;
+    }
+    if (!datos.ciudad.trim()) {
+      setErrorCrear("La ciudad es obligatoria.");
+      return;
+    }
+    try {
+      setGuardando(true);
+      const creado = await createEnvio(datos);
+      setEnvios((prev) => [...prev, creado]);
+      cerrarModalCrear();
+    } catch {
+      setErrorCrear("No se pudo crear el envío. Verifica permisos o datos.");
+    } finally {
+      setGuardando(false);
+    }
+  };
+  // Cambiar estado
+  const guardarEstado = async () => {
+    if (!envioEditarEstado || !nuevoEstado) return;
+    setErrorEstado("");
+    try {
+      setGuardandoEstado(true);
+      const actualizado = await updateEnvioEstado(envioEditarEstado.id, {
+        estado: nuevoEstado,
+      });
+      setEnvios((prev) =>
+        prev.map((e) => (e.id === actualizado.id ? actualizado : e)),
+      );
+      setEnvioEditarEstado(null);
+      setNuevoEstado("");
+    } catch {
+      setErrorEstado("No se pudo actualizar el estado.");
+    } finally {
+      setGuardandoEstado(false);
+    }
+  };
+  // Eliminar
+  const confirmarEliminar = async () => {
+    if (!envioParaEliminar) return;
+    try {
+      setEliminando(true);
+      setErrorEliminar("");
+      await deleteEnvio(envioParaEliminar.id);
+      setEnvios((prev) => prev.filter((e) => e.id !== envioParaEliminar.id));
+      setEnvioParaEliminar(null);
+    } catch {
+      setErrorEliminar("No se pudo eliminar el envío.");
+    } finally {
+      setEliminando(false);
+    }
+  };
   return (
     <div className="space-y-10">
       {/* Header */}
@@ -125,7 +246,10 @@ export default function EnviosPage() {
               </span>
             </button>
           </div>
-          <button className="w-full md:w-auto flex items-center justify-center gap-2 px-6 py-2.5 bg-secondary text-white rounded-xl text-sm font-bold shadow-lg shadow-secondary/20 hover:opacity-90 transition-all active:scale-95 cursor-pointer">
+          <button
+            className="w-full md:w-auto flex items-center justify-center gap-2 px-6 py-2.5 bg-secondary text-white rounded-xl text-sm font-bold shadow-lg shadow-secondary/20 hover:opacity-90 transition-all active:scale-95 cursor-pointer"
+            onClick={() => setModalCrearAbierto(true)}
+          >
             <span className="material-symbols-outlined text-sm">add</span>
             Nuevo Envío
           </button>
@@ -188,22 +312,25 @@ export default function EnviosPage() {
                         {envio.transportista || "Sin asignar"}
                       </td>
                       <td className="px-4 py-3">
-                        <span
-                          className={`px-3 py-1 text-[10px] font-extrabold rounded-full uppercase ${estado.classes}`}
+                        <button
+                          className={`px-3 py-1 text-[10px] font-extrabold rounded-full uppercase cursor-pointer hover:opacity-80 ${estado.classes}`}
+                          onClick={() => {
+                            setEnvioEditarEstado(envio);
+                            setNuevoEstado(envio.estado);
+                            setErrorEstado("");
+                          }}
                         >
                           {estado.label}
-                        </span>
+                        </button>
                       </td>
                       <td className="px-4 py-3 text-right pr-6 rounded-r-lg">
                         <div className="flex items-center justify-end gap-2">
-                          <button className="p-1.5 text-on-surface-variant hover:text-primary transition-colors cursor-pointer">
+                          <button
+                            className="p-1.5 text-on-surface-variant hover:text-error transition-colors cursor-pointer"
+                            onClick={() => setEnvioParaEliminar(envio)}
+                          >
                             <span className="material-symbols-outlined text-lg">
-                              visibility
-                            </span>
-                          </button>
-                          <button className="p-1.5 text-on-surface-variant hover:text-primary transition-colors cursor-pointer">
-                            <span className="material-symbols-outlined text-lg">
-                              edit_note
+                              delete
                             </span>
                           </button>
                         </div>
@@ -216,6 +343,274 @@ export default function EnviosPage() {
           </div>
         )}
       </div>
+      {/* Modal Crear Envío */}
+      <Modal
+        open={modalCrearAbierto}
+        onClose={cerrarModalCrear}
+        title="Nuevo envío"
+        subtitle="Registra un nuevo envío en el sistema."
+      >
+        <form className="space-y-5 px-6 py-6" onSubmit={guardarEnvio}>
+          <div className="space-y-2">
+            <label
+              className="text-[11px] font-bold uppercase tracking-wider text-on-surface-variant"
+              htmlFor="envio-pedido-id"
+            >
+              ID del Pedido
+            </label>
+            <input
+              className="w-full rounded-lg bg-surface-container-low px-4 py-3 text-sm text-on-surface outline-none ring-1 ring-transparent transition focus:ring-2 focus:ring-secondary"
+              id="envio-pedido-id"
+              min="1"
+              onChange={(e) => setNuevoPedidoId(e.target.value)}
+              placeholder="Ej: 1"
+              required
+              type="number"
+              value={nuevoPedidoId}
+            />
+          </div>
+          <div className="space-y-2">
+            <label
+              className="text-[11px] font-bold uppercase tracking-wider text-on-surface-variant"
+              htmlFor="envio-direccion"
+            >
+              Dirección de Entrega
+            </label>
+            <input
+              className="w-full rounded-lg bg-surface-container-low px-4 py-3 text-sm text-on-surface outline-none ring-1 ring-transparent transition focus:ring-2 focus:ring-secondary"
+              id="envio-direccion"
+              onChange={(e) => setNuevaDireccion(e.target.value)}
+              placeholder="Ej: Av. Principal 123"
+              required
+              type="text"
+              value={nuevaDireccion}
+            />
+          </div>
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+            <div className="space-y-2">
+              <label
+                className="text-[11px] font-bold uppercase tracking-wider text-on-surface-variant"
+                htmlFor="envio-comuna"
+              >
+                Comuna
+              </label>
+              <input
+                className="w-full rounded-lg bg-surface-container-low px-4 py-3 text-sm text-on-surface outline-none ring-1 ring-transparent transition focus:ring-2 focus:ring-secondary"
+                id="envio-comuna"
+                onChange={(e) => setNuevaComuna(e.target.value)}
+                placeholder="Ej: Providencia"
+                required
+                type="text"
+                value={nuevaComuna}
+              />
+            </div>
+            <div className="space-y-2">
+              <label
+                className="text-[11px] font-bold uppercase tracking-wider text-on-surface-variant"
+                htmlFor="envio-ciudad"
+              >
+                Ciudad
+              </label>
+              <input
+                className="w-full rounded-lg bg-surface-container-low px-4 py-3 text-sm text-on-surface outline-none ring-1 ring-transparent transition focus:ring-2 focus:ring-secondary"
+                id="envio-ciudad"
+                onChange={(e) => setNuevaCiudad(e.target.value)}
+                placeholder="Ej: Santiago"
+                required
+                type="text"
+                value={nuevaCiudad}
+              />
+            </div>
+          </div>
+          <div className="space-y-2">
+            <label
+              className="text-[11px] font-bold uppercase tracking-wider text-on-surface-variant"
+              htmlFor="envio-transportista"
+            >
+              Transportista (opcional)
+            </label>
+            <input
+              className="w-full rounded-lg bg-surface-container-low px-4 py-3 text-sm text-on-surface outline-none ring-1 ring-transparent transition focus:ring-2 focus:ring-secondary"
+              id="envio-transportista"
+              onChange={(e) => setNuevoTransportista(e.target.value)}
+              placeholder="Ej: Starken"
+              type="text"
+              value={nuevoTransportista}
+            />
+          </div>
+          {errorCrear && (
+            <div className="rounded-lg bg-error-container px-4 py-3 text-xs font-semibold text-on-error-container">
+              {errorCrear}
+            </div>
+          )}
+          <div className="flex flex-col-reverse gap-3 pt-2 sm:flex-row sm:justify-end">
+            <button
+              className="rounded-lg px-5 py-2.5 text-sm font-bold text-on-surface-variant transition-colors hover:bg-surface-container-low disabled:cursor-not-allowed disabled:opacity-60"
+              disabled={guardando}
+              onClick={cerrarModalCrear}
+              type="button"
+            >
+              Cancelar
+            </button>
+            <button
+              className="flex items-center justify-center gap-2 rounded-lg bg-secondary px-5 py-2.5 text-sm font-bold text-white shadow-lg shadow-secondary/20 transition-all hover:opacity-90 active:scale-95 disabled:cursor-not-allowed disabled:opacity-60"
+              disabled={guardando}
+              type="submit"
+            >
+              {guardando ? (
+                <span className="material-symbols-outlined text-lg animate-spin">
+                  progress_activity
+                </span>
+              ) : (
+                <span className="material-symbols-outlined text-lg">add</span>
+              )}
+              Crear envío
+            </button>
+          </div>
+        </form>
+      </Modal>
+      {/* Modal Cambiar Estado */}
+      <Modal
+        open={!!envioEditarEstado}
+        onClose={() => {
+          setEnvioEditarEstado(null);
+          setNuevoEstado("");
+          setErrorEstado("");
+        }}
+        title="Cambiar estado del envío"
+        subtitle={
+          envioEditarEstado
+            ? `Envío ${envioEditarEstado.codigo_seguimiento}`
+            : ""
+        }
+      >
+        <div className="px-6 py-6">
+          <div className="space-y-4">
+            <div className="space-y-2">
+              <label
+                className="text-[11px] font-bold uppercase tracking-wider text-on-surface-variant"
+                htmlFor="envio-estado"
+              >
+                Nuevo estado
+              </label>
+              <select
+                className="w-full rounded-lg bg-surface-container-low px-4 py-3 text-sm text-on-surface outline-none ring-1 ring-transparent transition focus:ring-2 focus:ring-secondary cursor-pointer"
+                id="envio-estado"
+                onChange={(e) => setNuevoEstado(e.target.value)}
+                value={nuevoEstado}
+              >
+                {estadosPermitidos.map((estado) => (
+                  <option key={estado} value={estado}>
+                    {estadoConfig[estado]?.label || estado}
+                  </option>
+                ))}
+              </select>
+            </div>
+            {errorEstado && (
+              <div className="rounded-lg bg-error-container px-4 py-3 text-xs font-semibold text-on-error-container">
+                {errorEstado}
+              </div>
+            )}
+          </div>
+          <div className="flex flex-col-reverse gap-3 pt-6 sm:flex-row sm:justify-end">
+            <button
+              className="rounded-lg px-5 py-2.5 text-sm font-bold text-on-surface-variant transition-colors hover:bg-surface-container-low disabled:cursor-not-allowed disabled:opacity-60"
+              disabled={guardandoEstado}
+              onClick={() => {
+                setEnvioEditarEstado(null);
+                setNuevoEstado("");
+                setErrorEstado("");
+              }}
+              type="button"
+            >
+              Cancelar
+            </button>
+            <button
+              className="flex items-center justify-center gap-2 rounded-lg bg-secondary px-5 py-2.5 text-sm font-bold text-white shadow-lg shadow-secondary/20 transition-all hover:opacity-90 active:scale-95 disabled:cursor-not-allowed disabled:opacity-60"
+              disabled={guardandoEstado || !nuevoEstado}
+              onClick={guardarEstado}
+              type="button"
+            >
+              {guardandoEstado ? (
+                <span className="material-symbols-outlined text-lg animate-spin">
+                  progress_activity
+                </span>
+              ) : (
+                <span className="material-symbols-outlined text-lg">
+                  edit_note
+                </span>
+              )}
+              Guardar cambios
+            </button>
+          </div>
+        </div>
+      </Modal>
+      {/* Modal Eliminar */}
+      <Modal
+        open={!!envioParaEliminar}
+        onClose={() => {
+          setEnvioParaEliminar(null);
+          setErrorEliminar("");
+        }}
+        title="Eliminar envío"
+      >
+        <div className="px-6 py-6">
+          <div className="flex items-start gap-4 mb-2">
+            <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-error-container">
+              <span className="material-symbols-outlined text-xl text-on-error-container">
+                delete
+              </span>
+            </div>
+            <p className="text-sm text-on-surface-variant leading-6 pt-2">
+              ¿Seguro que quieres eliminar el envío{" "}
+              <span className="font-bold text-on-surface">
+                {envioParaEliminar?.codigo_seguimiento}
+              </span>{" "}
+              con destino a{" "}
+              <span className="font-bold text-on-surface">
+                {envioParaEliminar?.direccion_entrega},{" "}
+                {envioParaEliminar?.comuna}
+              </span>
+              ? Esta acción no se puede deshacer.
+            </p>
+          </div>
+          {errorEliminar && (
+            <div className="mt-4 rounded-lg bg-error-container px-4 py-3 text-xs font-semibold text-on-error-container">
+              {errorEliminar}
+            </div>
+          )}
+          <div className="flex flex-col-reverse gap-3 pt-6 sm:flex-row sm:justify-end">
+            <button
+              className="rounded-lg px-5 py-2.5 text-sm font-bold text-on-surface-variant transition-colors hover:bg-surface-container-low disabled:cursor-not-allowed disabled:opacity-60"
+              disabled={eliminando}
+              onClick={() => {
+                setEnvioParaEliminar(null);
+                setErrorEliminar("");
+              }}
+              type="button"
+            >
+              No, cancelar
+            </button>
+            <button
+              className="flex items-center justify-center gap-2 rounded-lg bg-error px-5 py-2.5 text-sm font-bold text-white shadow-lg shadow-error/20 transition-all hover:opacity-90 active:scale-95 disabled:cursor-not-allowed disabled:opacity-60"
+              disabled={eliminando}
+              onClick={confirmarEliminar}
+              type="button"
+            >
+              {eliminando ? (
+                <span className="material-symbols-outlined text-lg animate-spin">
+                  progress_activity
+                </span>
+              ) : (
+                <span className="material-symbols-outlined text-lg">
+                  delete
+                </span>
+              )}
+              Sí, eliminar
+            </button>
+          </div>
+        </div>
+      </Modal>
     </div>
   );
 }
