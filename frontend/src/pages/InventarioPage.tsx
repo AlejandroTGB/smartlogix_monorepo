@@ -1,4 +1,5 @@
-import { useEffect, useState, type FormEvent } from "react";
+import { useEffect, useState } from "react";
+import Modal from "../components/modal";
 import {
   createProducto,
   deleteProducto,
@@ -8,88 +9,78 @@ import {
   type ProductoCreate,
   type ProductoUpdate,
 } from "../api/inventario";
-
 const productoInicial = {
   nombre: "",
   descripcion: "",
   precio: "",
   stock: "",
 };
-
 export default function InventarioPage() {
   const [productos, setProductos] = useState<Producto[]>([]);
   const [loading, setLoading] = useState(true);
+  // Crear
   const [modalCrearAbierto, setModalCrearAbierto] = useState(false);
   const [guardandoProducto, setGuardandoProducto] = useState(false);
   const [errorFormulario, setErrorFormulario] = useState("");
   const [nuevoProducto, setNuevoProducto] = useState(productoInicial);
+  // Eliminar
   const [productoParaEliminar, setProductoParaEliminar] =
     useState<Producto | null>(null);
   const [eliminandoProducto, setEliminandoProducto] = useState(false);
   const [errorEliminar, setErrorEliminar] = useState("");
-  const [productoParaEditar, setProductoParaEditar] =
-    useState<Producto | null>(null);
+  // Editar
+  const [productoParaEditar, setProductoParaEditar] = useState<Producto | null>(
+    null,
+  );
   const [productoEditado, setProductoEditado] = useState(productoInicial);
   const [guardandoEdicion, setGuardandoEdicion] = useState(false);
   const [errorEdicion, setErrorEdicion] = useState("");
-
   useEffect(() => {
     getProductos()
       .then(setProductos)
       .catch(console.error)
       .finally(() => setLoading(false));
   }, []);
-
+  // --- Crear ---
   const cerrarModalCrear = () => {
     if (guardandoProducto) return;
     setModalCrearAbierto(false);
     setNuevoProducto(productoInicial);
     setErrorFormulario("");
   };
-
   const actualizarCampoProducto = (
     campo: keyof typeof productoInicial,
     valor: string,
   ) => {
-    setNuevoProducto((producto) => ({
-      ...producto,
-      [campo]: valor,
-    }));
+    setNuevoProducto((prev) => ({ ...prev, [campo]: valor }));
   };
-
-  const guardarProducto = async (event: FormEvent<HTMLFormElement>) => {
-    event.preventDefault();
+  const guardarProducto = async (e: React.FormEvent) => {
+    e.preventDefault();
     setErrorFormulario("");
-
-    const productoParaCrear: ProductoCreate = {
+    const datos: ProductoCreate = {
       nombre: nuevoProducto.nombre.trim(),
       descripcion: nuevoProducto.descripcion.trim() || null,
       precio: Number(nuevoProducto.precio),
       stock: Number(nuevoProducto.stock),
     };
-
-    if (!productoParaCrear.nombre) {
+    if (!datos.nombre) {
       setErrorFormulario("El nombre del producto es obligatorio.");
       return;
     }
-
-    if (productoParaCrear.precio <= 0 || Number.isNaN(productoParaCrear.precio)) {
+    if (datos.precio <= 0 || Number.isNaN(datos.precio)) {
       setErrorFormulario("El precio debe ser mayor a 0.");
       return;
     }
-
-    if (productoParaCrear.stock < 0 || Number.isNaN(productoParaCrear.stock)) {
+    if (datos.stock < 0 || Number.isNaN(datos.stock)) {
       setErrorFormulario("El stock no puede ser negativo.");
       return;
     }
-
     try {
       setGuardandoProducto(true);
-      const productoCreado = await createProducto(productoParaCrear);
-      setProductos((productosActuales) => [...productosActuales, productoCreado]);
+      const creado = await createProducto(datos);
+      setProductos((prev) => [...prev, creado]);
       cerrarModalCrear();
-    } catch (error) {
-      console.error(error);
+    } catch {
       setErrorFormulario(
         "No se pudo crear el producto. Verifica permisos o datos ingresados.",
       );
@@ -97,28 +88,23 @@ export default function InventarioPage() {
       setGuardandoProducto(false);
     }
   };
-
+  // --- Eliminar ---
   const cerrarModalEliminar = () => {
     if (eliminandoProducto) return;
     setProductoParaEliminar(null);
     setErrorEliminar("");
   };
-
-  const confirmarEliminarProducto = async () => {
+  const confirmarEliminar = async () => {
     if (!productoParaEliminar) return;
-
     try {
       setEliminandoProducto(true);
       setErrorEliminar("");
       await deleteProducto(productoParaEliminar.id);
-      setProductos((productosActuales) =>
-        productosActuales.filter(
-          (producto) => producto.id !== productoParaEliminar.id,
-        ),
+      setProductos((prev) =>
+        prev.filter((p) => p.id !== productoParaEliminar.id),
       );
       cerrarModalEliminar();
-    } catch (error) {
-      console.error(error);
+    } catch {
       setErrorEliminar(
         "No se pudo eliminar el producto. Verifica permisos o intenta nuevamente.",
       );
@@ -126,7 +112,7 @@ export default function InventarioPage() {
       setEliminandoProducto(false);
     }
   };
-
+  // --- Editar ---
   const abrirModalEditar = (producto: Producto) => {
     setProductoParaEditar(producto);
     setProductoEditado({
@@ -137,72 +123,48 @@ export default function InventarioPage() {
     });
     setErrorEdicion("");
   };
-
   const cerrarModalEditar = () => {
     if (guardandoEdicion) return;
     setProductoParaEditar(null);
     setProductoEditado(productoInicial);
     setErrorEdicion("");
   };
-
   const actualizarCampoEdicion = (
     campo: keyof typeof productoInicial,
     valor: string,
   ) => {
-    setProductoEditado((producto) => ({
-      ...producto,
-      [campo]: valor,
-    }));
+    setProductoEditado((prev) => ({ ...prev, [campo]: valor }));
   };
-
-  const guardarEdicionProducto = async (event: FormEvent<HTMLFormElement>) => {
-    event.preventDefault();
+  const guardarEdicion = async (e: React.FormEvent) => {
+    e.preventDefault();
     if (!productoParaEditar) return;
-
     setErrorEdicion("");
-
-    const productoParaActualizar: ProductoUpdate = {
+    const datos: ProductoUpdate = {
       nombre: productoEditado.nombre.trim(),
       descripcion: productoEditado.descripcion.trim() || null,
       precio: Number(productoEditado.precio),
       stock: Number(productoEditado.stock),
     };
-
-    if (!productoParaActualizar.nombre) {
+    if (!datos.nombre) {
       setErrorEdicion("El nombre del producto es obligatorio.");
       return;
     }
-
-    if (
-      productoParaActualizar.precio <= 0 ||
-      Number.isNaN(productoParaActualizar.precio)
-    ) {
+    if (datos.precio <= 0 || Number.isNaN(datos.precio)) {
       setErrorEdicion("El precio debe ser mayor a 0.");
       return;
     }
-
-    if (
-      productoParaActualizar.stock < 0 ||
-      Number.isNaN(productoParaActualizar.stock)
-    ) {
+    if (datos.stock < 0 || Number.isNaN(datos.stock)) {
       setErrorEdicion("El stock no puede ser negativo.");
       return;
     }
-
     try {
       setGuardandoEdicion(true);
-      const productoActualizado = await updateProducto(
-        productoParaEditar.id,
-        productoParaActualizar,
-      );
-      setProductos((productosActuales) =>
-        productosActuales.map((producto) =>
-          producto.id === productoActualizado.id ? productoActualizado : producto,
-        ),
+      const actualizado = await updateProducto(productoParaEditar.id, datos);
+      setProductos((prev) =>
+        prev.map((p) => (p.id === actualizado.id ? actualizado : p)),
       );
       cerrarModalEditar();
-    } catch (error) {
-      console.error(error);
+    } catch {
       setErrorEdicion(
         "No se pudo editar el producto. Verifica permisos o datos ingresados.",
       );
@@ -210,7 +172,6 @@ export default function InventarioPage() {
       setGuardandoEdicion(false);
     }
   };
-
   return (
     <div className="space-y-10">
       {/* Header */}
@@ -282,7 +243,6 @@ export default function InventarioPage() {
       </div>
       {/* Product Table */}
       <div className="bg-surface-container-lowest rounded-xl p-2">
-        {/* Toolbar */}
         <div className="flex flex-col md:flex-row justify-between items-center p-4 gap-4">
           <div className="flex items-center gap-3 w-full md:w-auto">
             <div className="relative flex-1 md:w-64">
@@ -308,13 +268,11 @@ export default function InventarioPage() {
           <button
             className="w-full md:w-auto flex items-center justify-center gap-2 px-6 py-2.5 bg-secondary text-white rounded-xl text-sm font-bold shadow-lg shadow-secondary/20 hover:opacity-90 transition-all active:scale-95 cursor-pointer"
             onClick={() => setModalCrearAbierto(true)}
-            type="button"
           >
             <span className="material-symbols-outlined text-sm">add</span>
             Añadir Nuevo Producto
           </button>
         </div>
-        {/* Table */}
         {loading ? (
           <div className="flex justify-center items-center py-20">
             <span className="material-symbols-outlined text-4xl text-on-surface-variant animate-spin">
@@ -344,7 +302,7 @@ export default function InventarioPage() {
                     Descripción
                   </th>
                   <th className="px-4 py-4 text-left text-[10px] font-bold text-on-surface-variant uppercase tracking-wider">
-                    Stock Disponible
+                    Stock
                   </th>
                   <th className="px-4 py-4 text-left text-[10px] font-bold text-on-surface-variant uppercase tracking-wider">
                     Precio
@@ -391,7 +349,6 @@ export default function InventarioPage() {
                         <button
                           className="p-1.5 text-on-surface-variant hover:text-primary transition-colors cursor-pointer"
                           onClick={() => abrirModalEditar(producto)}
-                          type="button"
                         >
                           <span className="material-symbols-outlined text-lg">
                             edit_note
@@ -403,7 +360,6 @@ export default function InventarioPage() {
                             setProductoParaEliminar(producto);
                             setErrorEliminar("");
                           }}
-                          type="button"
                         >
                           <span className="material-symbols-outlined text-lg">
                             delete
@@ -437,362 +393,299 @@ export default function InventarioPage() {
           </div>
         </div>
       </div>
-      {modalCrearAbierto && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 px-4 py-8 backdrop-blur-[2px]">
-          <div className="w-full max-w-lg rounded-xl bg-surface-container-lowest shadow-2xl shadow-black/20">
-            <div className="flex items-start justify-between gap-4 border-b border-outline-variant px-6 py-5">
-              <div>
-                <h3 className="font-headline text-lg font-extrabold text-on-surface">
-                  Añadir nuevo producto
-                </h3>
-                <p className="mt-1 text-xs text-on-surface-variant">
-                  Registra un producto para mantener actualizado el inventario.
-                </p>
-              </div>
-              <button
-                aria-label="Cerrar modal"
-                className="rounded-lg p-2 text-on-surface-variant transition-colors hover:bg-surface-container-low hover:text-on-surface"
-                onClick={cerrarModalCrear}
-                type="button"
-              >
-                <span className="material-symbols-outlined text-xl">close</span>
-              </button>
-            </div>
-
-            <form className="space-y-5 px-6 py-6" onSubmit={guardarProducto}>
-              <div className="space-y-2">
-                <label
-                  className="text-[11px] font-bold uppercase tracking-wider text-on-surface-variant"
-                  htmlFor="producto-nombre"
-                >
-                  Nombre
-                </label>
-                <input
-                  className="w-full rounded-lg bg-surface-container-low px-4 py-3 text-sm text-on-surface outline-none ring-1 ring-transparent transition focus:ring-2 focus:ring-secondary"
-                  id="producto-nombre"
-                  maxLength={100}
-                  minLength={2}
-                  onChange={(event) =>
-                    actualizarCampoProducto("nombre", event.target.value)
-                  }
-                  placeholder="Ej: Teclado mecanico"
-                  required
-                  type="text"
-                  value={nuevoProducto.nombre}
-                />
-              </div>
-
-              <div className="space-y-2">
-                <label
-                  className="text-[11px] font-bold uppercase tracking-wider text-on-surface-variant"
-                  htmlFor="producto-descripcion"
-                >
-                  Descripcion
-                </label>
-                <textarea
-                  className="min-h-24 w-full resize-none rounded-lg bg-surface-container-low px-4 py-3 text-sm text-on-surface outline-none ring-1 ring-transparent transition focus:ring-2 focus:ring-secondary"
-                  id="producto-descripcion"
-                  onChange={(event) =>
-                    actualizarCampoProducto("descripcion", event.target.value)
-                  }
-                  placeholder="Detalle breve del producto"
-                  value={nuevoProducto.descripcion}
-                />
-              </div>
-
-              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-                <div className="space-y-2">
-                  <label
-                    className="text-[11px] font-bold uppercase tracking-wider text-on-surface-variant"
-                    htmlFor="producto-precio"
-                  >
-                    Precio
-                  </label>
-                  <input
-                    className="w-full rounded-lg bg-surface-container-low px-4 py-3 text-sm text-on-surface outline-none ring-1 ring-transparent transition focus:ring-2 focus:ring-secondary"
-                    id="producto-precio"
-                    min="1"
-                    onChange={(event) =>
-                      actualizarCampoProducto("precio", event.target.value)
-                    }
-                    placeholder="0"
-                    required
-                    type="number"
-                    value={nuevoProducto.precio}
-                  />
-                </div>
-
-                <div className="space-y-2">
-                  <label
-                    className="text-[11px] font-bold uppercase tracking-wider text-on-surface-variant"
-                    htmlFor="producto-stock"
-                  >
-                    Stock inicial
-                  </label>
-                  <input
-                    className="w-full rounded-lg bg-surface-container-low px-4 py-3 text-sm text-on-surface outline-none ring-1 ring-transparent transition focus:ring-2 focus:ring-secondary"
-                    id="producto-stock"
-                    min="0"
-                    onChange={(event) =>
-                      actualizarCampoProducto("stock", event.target.value)
-                    }
-                    placeholder="0"
-                    required
-                    type="number"
-                    value={nuevoProducto.stock}
-                  />
-                </div>
-              </div>
-
-              {errorFormulario && (
-                <div className="rounded-lg bg-error-container px-4 py-3 text-xs font-semibold text-on-error-container">
-                  {errorFormulario}
-                </div>
-              )}
-
-              <div className="flex flex-col-reverse gap-3 pt-2 sm:flex-row sm:justify-end">
-                <button
-                  className="rounded-lg px-5 py-2.5 text-sm font-bold text-on-surface-variant transition-colors hover:bg-surface-container-low disabled:cursor-not-allowed disabled:opacity-60"
-                  disabled={guardandoProducto}
-                  onClick={cerrarModalCrear}
-                  type="button"
-                >
-                  Cancelar
-                </button>
-                <button
-                  className="flex items-center justify-center gap-2 rounded-lg bg-secondary px-5 py-2.5 text-sm font-bold text-white shadow-lg shadow-secondary/20 transition-all hover:opacity-90 active:scale-95 disabled:cursor-not-allowed disabled:opacity-60"
-                  disabled={guardandoProducto}
-                  type="submit"
-                >
-                  {guardandoProducto ? (
-                    <span className="material-symbols-outlined text-lg animate-spin">
-                      progress_activity
-                    </span>
-                  ) : (
-                    <span className="material-symbols-outlined text-lg">add</span>
-                  )}
-                  Guardar producto
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
-      {productoParaEditar && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 px-4 py-8 backdrop-blur-[2px]">
-          <div className="w-full max-w-lg rounded-xl bg-surface-container-lowest shadow-2xl shadow-black/20">
-            <div className="flex items-start justify-between gap-4 border-b border-outline-variant px-6 py-5">
-              <div>
-                <h3 className="font-headline text-lg font-extrabold text-on-surface">
-                  Editar producto
-                </h3>
-                <p className="mt-1 text-xs text-on-surface-variant">
-                  Actualiza los datos del producto seleccionado.
-                </p>
-              </div>
-              <button
-                aria-label="Cerrar modal"
-                className="rounded-lg p-2 text-on-surface-variant transition-colors hover:bg-surface-container-low hover:text-on-surface"
-                onClick={cerrarModalEditar}
-                type="button"
-              >
-                <span className="material-symbols-outlined text-xl">close</span>
-              </button>
-            </div>
-
-            <form
-              className="space-y-5 px-6 py-6"
-              onSubmit={guardarEdicionProducto}
+      {/* Modal Crear */}
+      <Modal
+        open={modalCrearAbierto}
+        onClose={cerrarModalCrear}
+        title="Añadir nuevo producto"
+        subtitle="Registra un producto para mantener actualizado el inventario."
+      >
+        <form className="space-y-5 px-6 py-6" onSubmit={guardarProducto}>
+          <div className="space-y-2">
+            <label
+              className="text-[11px] font-bold uppercase tracking-wider text-on-surface-variant"
+              htmlFor="producto-nombre"
             >
-              <div className="space-y-2">
-                <label
-                  className="text-[11px] font-bold uppercase tracking-wider text-on-surface-variant"
-                  htmlFor="producto-editar-nombre"
-                >
-                  Nombre
-                </label>
-                <input
-                  className="w-full rounded-lg bg-surface-container-low px-4 py-3 text-sm text-on-surface outline-none ring-1 ring-transparent transition focus:ring-2 focus:ring-secondary"
-                  id="producto-editar-nombre"
-                  maxLength={100}
-                  minLength={2}
-                  onChange={(event) =>
-                    actualizarCampoEdicion("nombre", event.target.value)
-                  }
-                  placeholder="Ej: Teclado mecanico"
-                  required
-                  type="text"
-                  value={productoEditado.nombre}
-                />
-              </div>
-
-              <div className="space-y-2">
-                <label
-                  className="text-[11px] font-bold uppercase tracking-wider text-on-surface-variant"
-                  htmlFor="producto-editar-descripcion"
-                >
-                  Descripcion
-                </label>
-                <textarea
-                  className="min-h-24 w-full resize-none rounded-lg bg-surface-container-low px-4 py-3 text-sm text-on-surface outline-none ring-1 ring-transparent transition focus:ring-2 focus:ring-secondary"
-                  id="producto-editar-descripcion"
-                  onChange={(event) =>
-                    actualizarCampoEdicion("descripcion", event.target.value)
-                  }
-                  placeholder="Detalle breve del producto"
-                  value={productoEditado.descripcion}
-                />
-              </div>
-
-              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-                <div className="space-y-2">
-                  <label
-                    className="text-[11px] font-bold uppercase tracking-wider text-on-surface-variant"
-                    htmlFor="producto-editar-precio"
-                  >
-                    Precio
-                  </label>
-                  <input
-                    className="w-full rounded-lg bg-surface-container-low px-4 py-3 text-sm text-on-surface outline-none ring-1 ring-transparent transition focus:ring-2 focus:ring-secondary"
-                    id="producto-editar-precio"
-                    min="1"
-                    onChange={(event) =>
-                      actualizarCampoEdicion("precio", event.target.value)
-                    }
-                    placeholder="0"
-                    required
-                    type="number"
-                    value={productoEditado.precio}
-                  />
-                </div>
-
-                <div className="space-y-2">
-                  <label
-                    className="text-[11px] font-bold uppercase tracking-wider text-on-surface-variant"
-                    htmlFor="producto-editar-stock"
-                  >
-                    Stock
-                  </label>
-                  <input
-                    className="w-full rounded-lg bg-surface-container-low px-4 py-3 text-sm text-on-surface outline-none ring-1 ring-transparent transition focus:ring-2 focus:ring-secondary"
-                    id="producto-editar-stock"
-                    min="0"
-                    onChange={(event) =>
-                      actualizarCampoEdicion("stock", event.target.value)
-                    }
-                    placeholder="0"
-                    required
-                    type="number"
-                    value={productoEditado.stock}
-                  />
-                </div>
-              </div>
-
-              {errorEdicion && (
-                <div className="rounded-lg bg-error-container px-4 py-3 text-xs font-semibold text-on-error-container">
-                  {errorEdicion}
-                </div>
+              Nombre
+            </label>
+            <input
+              className="w-full rounded-lg bg-surface-container-low px-4 py-3 text-sm text-on-surface outline-none ring-1 ring-transparent transition focus:ring-2 focus:ring-secondary"
+              id="producto-nombre"
+              maxLength={100}
+              minLength={2}
+              onChange={(e) =>
+                actualizarCampoProducto("nombre", e.target.value)
+              }
+              placeholder="Ej: Teclado mecánico"
+              required
+              type="text"
+              value={nuevoProducto.nombre}
+            />
+          </div>
+          <div className="space-y-2">
+            <label
+              className="text-[11px] font-bold uppercase tracking-wider text-on-surface-variant"
+              htmlFor="producto-descripcion"
+            >
+              Descripción
+            </label>
+            <textarea
+              className="min-h-24 w-full resize-none rounded-lg bg-surface-container-low px-4 py-3 text-sm text-on-surface outline-none ring-1 ring-transparent transition focus:ring-2 focus:ring-secondary"
+              id="producto-descripcion"
+              onChange={(e) =>
+                actualizarCampoProducto("descripcion", e.target.value)
+              }
+              placeholder="Detalle breve del producto"
+              value={nuevoProducto.descripcion}
+            />
+          </div>
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+            <div className="space-y-2">
+              <label
+                className="text-[11px] font-bold uppercase tracking-wider text-on-surface-variant"
+                htmlFor="producto-precio"
+              >
+                Precio
+              </label>
+              <input
+                className="w-full rounded-lg bg-surface-container-low px-4 py-3 text-sm text-on-surface outline-none ring-1 ring-transparent transition focus:ring-2 focus:ring-secondary"
+                id="producto-precio"
+                min="1"
+                onChange={(e) =>
+                  actualizarCampoProducto("precio", e.target.value)
+                }
+                placeholder="0"
+                required
+                type="number"
+                value={nuevoProducto.precio}
+              />
+            </div>
+            <div className="space-y-2">
+              <label
+                className="text-[11px] font-bold uppercase tracking-wider text-on-surface-variant"
+                htmlFor="producto-stock"
+              >
+                Stock inicial
+              </label>
+              <input
+                className="w-full rounded-lg bg-surface-container-low px-4 py-3 text-sm text-on-surface outline-none ring-1 ring-transparent transition focus:ring-2 focus:ring-secondary"
+                id="producto-stock"
+                min="0"
+                onChange={(e) =>
+                  actualizarCampoProducto("stock", e.target.value)
+                }
+                placeholder="0"
+                required
+                type="number"
+                value={nuevoProducto.stock}
+              />
+            </div>
+          </div>
+          {errorFormulario && (
+            <div className="rounded-lg bg-error-container px-4 py-3 text-xs font-semibold text-on-error-container">
+              {errorFormulario}
+            </div>
+          )}
+          <div className="flex flex-col-reverse gap-3 pt-2 sm:flex-row sm:justify-end">
+            <button
+              className="rounded-lg px-5 py-2.5 text-sm font-bold text-on-surface-variant transition-colors hover:bg-surface-container-low disabled:cursor-not-allowed disabled:opacity-60"
+              disabled={guardandoProducto}
+              onClick={cerrarModalCrear}
+              type="button"
+            >
+              Cancelar
+            </button>
+            <button
+              className="flex items-center justify-center gap-2 rounded-lg bg-secondary px-5 py-2.5 text-sm font-bold text-white shadow-lg shadow-secondary/20 transition-all hover:opacity-90 active:scale-95 disabled:cursor-not-allowed disabled:opacity-60"
+              disabled={guardandoProducto}
+              type="submit"
+            >
+              {guardandoProducto ? (
+                <span className="material-symbols-outlined text-lg animate-spin">
+                  progress_activity
+                </span>
+              ) : (
+                <span className="material-symbols-outlined text-lg">add</span>
               )}
-
-              <div className="flex flex-col-reverse gap-3 pt-2 sm:flex-row sm:justify-end">
-                <button
-                  className="rounded-lg px-5 py-2.5 text-sm font-bold text-on-surface-variant transition-colors hover:bg-surface-container-low disabled:cursor-not-allowed disabled:opacity-60"
-                  disabled={guardandoEdicion}
-                  onClick={cerrarModalEditar}
-                  type="button"
-                >
-                  Cancelar
-                </button>
-                <button
-                  className="flex items-center justify-center gap-2 rounded-lg bg-secondary px-5 py-2.5 text-sm font-bold text-white shadow-lg shadow-secondary/20 transition-all hover:opacity-90 active:scale-95 disabled:cursor-not-allowed disabled:opacity-60"
-                  disabled={guardandoEdicion}
-                  type="submit"
-                >
-                  {guardandoEdicion ? (
-                    <span className="material-symbols-outlined text-lg animate-spin">
-                      progress_activity
-                    </span>
-                  ) : (
-                    <span className="material-symbols-outlined text-lg">
-                      edit_note
-                    </span>
-                  )}
-                  Guardar cambios
-                </button>
-              </div>
-            </form>
+              Guardar producto
+            </button>
           </div>
-        </div>
-      )}
-      {productoParaEliminar && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 px-4 py-8 backdrop-blur-[2px]">
-          <div className="w-full max-w-md rounded-xl bg-surface-container-lowest shadow-2xl shadow-black/20">
-            <div className="flex items-start justify-between gap-4 px-6 py-5">
-              <div className="flex items-start gap-4">
-                <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-error-container text-on-error-container">
-                  <span className="material-symbols-outlined text-xl">
-                    delete
-                  </span>
-                </div>
-                <div>
-                  <h3 className="font-headline text-lg font-extrabold text-on-surface">
-                    Eliminar producto
-                  </h3>
-                  <p className="mt-2 text-sm leading-6 text-on-surface-variant">
-                    ¿Seguro que quieres eliminar{" "}
-                    <span className="font-bold text-on-surface">
-                      {productoParaEliminar.nombre}
-                    </span>
-                    ?
-                  </p>
-                </div>
-              </div>
-              <button
-                aria-label="Cerrar modal"
-                className="rounded-lg p-2 text-on-surface-variant transition-colors hover:bg-surface-container-low hover:text-on-surface"
-                onClick={cerrarModalEliminar}
-                type="button"
+        </form>
+      </Modal>
+      {/* Modal Editar */}
+      <Modal
+        open={!!productoParaEditar}
+        onClose={cerrarModalEditar}
+        title="Editar producto"
+        subtitle="Actualiza los datos del producto seleccionado."
+      >
+        <form className="space-y-5 px-6 py-6" onSubmit={guardarEdicion}>
+          <div className="space-y-2">
+            <label
+              className="text-[11px] font-bold uppercase tracking-wider text-on-surface-variant"
+              htmlFor="producto-editar-nombre"
+            >
+              Nombre
+            </label>
+            <input
+              className="w-full rounded-lg bg-surface-container-low px-4 py-3 text-sm text-on-surface outline-none ring-1 ring-transparent transition focus:ring-2 focus:ring-secondary"
+              id="producto-editar-nombre"
+              maxLength={100}
+              minLength={2}
+              onChange={(e) => actualizarCampoEdicion("nombre", e.target.value)}
+              placeholder="Ej: Teclado mecánico"
+              required
+              type="text"
+              value={productoEditado.nombre}
+            />
+          </div>
+          <div className="space-y-2">
+            <label
+              className="text-[11px] font-bold uppercase tracking-wider text-on-surface-variant"
+              htmlFor="producto-editar-descripcion"
+            >
+              Descripción
+            </label>
+            <textarea
+              className="min-h-24 w-full resize-none rounded-lg bg-surface-container-low px-4 py-3 text-sm text-on-surface outline-none ring-1 ring-transparent transition focus:ring-2 focus:ring-secondary"
+              id="producto-editar-descripcion"
+              onChange={(e) =>
+                actualizarCampoEdicion("descripcion", e.target.value)
+              }
+              placeholder="Detalle breve del producto"
+              value={productoEditado.descripcion}
+            />
+          </div>
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+            <div className="space-y-2">
+              <label
+                className="text-[11px] font-bold uppercase tracking-wider text-on-surface-variant"
+                htmlFor="producto-editar-precio"
               >
-                <span className="material-symbols-outlined text-xl">close</span>
-              </button>
+                Precio
+              </label>
+              <input
+                className="w-full rounded-lg bg-surface-container-low px-4 py-3 text-sm text-on-surface outline-none ring-1 ring-transparent transition focus:ring-2 focus:ring-secondary"
+                id="producto-editar-precio"
+                min="1"
+                onChange={(e) =>
+                  actualizarCampoEdicion("precio", e.target.value)
+                }
+                placeholder="0"
+                required
+                type="number"
+                value={productoEditado.precio}
+              />
             </div>
-
-            {errorEliminar && (
-              <div className="mx-6 rounded-lg bg-error-container px-4 py-3 text-xs font-semibold text-on-error-container">
-                {errorEliminar}
-              </div>
-            )}
-
-            <div className="flex flex-col-reverse gap-3 px-6 pb-6 pt-5 sm:flex-row sm:justify-end">
-              <button
-                className="rounded-lg px-5 py-2.5 text-sm font-bold text-on-surface-variant transition-colors hover:bg-surface-container-low disabled:cursor-not-allowed disabled:opacity-60"
-                disabled={eliminandoProducto}
-                onClick={cerrarModalEliminar}
-                type="button"
+            <div className="space-y-2">
+              <label
+                className="text-[11px] font-bold uppercase tracking-wider text-on-surface-variant"
+                htmlFor="producto-editar-stock"
               >
-                No, cancelar
-              </button>
-              <button
-                className="flex items-center justify-center gap-2 rounded-lg bg-error px-5 py-2.5 text-sm font-bold text-white shadow-lg shadow-error/20 transition-all hover:opacity-90 active:scale-95 disabled:cursor-not-allowed disabled:opacity-60"
-                disabled={eliminandoProducto}
-                onClick={confirmarEliminarProducto}
-                type="button"
-              >
-                {eliminandoProducto ? (
-                  <span className="material-symbols-outlined text-lg animate-spin">
-                    progress_activity
-                  </span>
-                ) : (
-                  <span className="material-symbols-outlined text-lg">
-                    delete
-                  </span>
-                )}
-                Sí, eliminar
-              </button>
+                Stock
+              </label>
+              <input
+                className="w-full rounded-lg bg-surface-container-low px-4 py-3 text-sm text-on-surface outline-none ring-1 ring-transparent transition focus:ring-2 focus:ring-secondary"
+                id="producto-editar-stock"
+                min="0"
+                onChange={(e) =>
+                  actualizarCampoEdicion("stock", e.target.value)
+                }
+                placeholder="0"
+                required
+                type="number"
+                value={productoEditado.stock}
+              />
             </div>
           </div>
+          {errorEdicion && (
+            <div className="rounded-lg bg-error-container px-4 py-3 text-xs font-semibold text-on-error-container">
+              {errorEdicion}
+            </div>
+          )}
+          <div className="flex flex-col-reverse gap-3 pt-2 sm:flex-row sm:justify-end">
+            <button
+              className="rounded-lg px-5 py-2.5 text-sm font-bold text-on-surface-variant transition-colors hover:bg-surface-container-low disabled:cursor-not-allowed disabled:opacity-60"
+              disabled={guardandoEdicion}
+              onClick={cerrarModalEditar}
+              type="button"
+            >
+              Cancelar
+            </button>
+            <button
+              className="flex items-center justify-center gap-2 rounded-lg bg-secondary px-5 py-2.5 text-sm font-bold text-white shadow-lg shadow-secondary/20 transition-all hover:opacity-90 active:scale-95 disabled:cursor-not-allowed disabled:opacity-60"
+              disabled={guardandoEdicion}
+              type="submit"
+            >
+              {guardandoEdicion ? (
+                <span className="material-symbols-outlined text-lg animate-spin">
+                  progress_activity
+                </span>
+              ) : (
+                <span className="material-symbols-outlined text-lg">
+                  edit_note
+                </span>
+              )}
+              Guardar cambios
+            </button>
+          </div>
+        </form>
+      </Modal>
+      {/* Modal Eliminar */}
+      <Modal
+        open={!!productoParaEliminar}
+        onClose={cerrarModalEliminar}
+        title="Eliminar producto"
+      >
+        <div className="px-6 py-6">
+          <div className="flex items-start gap-4 mb-2">
+            <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-error-container">
+              <span className="material-symbols-outlined text-xl text-on-error-container">
+                delete
+              </span>
+            </div>
+            <p className="text-sm text-on-surface-variant leading-6 pt-2">
+              ¿Seguro que quieres eliminar{" "}
+              <span className="font-bold text-on-surface">
+                {productoParaEliminar?.nombre}
+              </span>
+              ? Esta acción no se puede deshacer.
+            </p>
+          </div>
+          {errorEliminar && (
+            <div className="mt-4 rounded-lg bg-error-container px-4 py-3 text-xs font-semibold text-on-error-container">
+              {errorEliminar}
+            </div>
+          )}
+          <div className="flex flex-col-reverse gap-3 pt-6 sm:flex-row sm:justify-end">
+            <button
+              className="rounded-lg px-5 py-2.5 text-sm font-bold text-on-surface-variant transition-colors hover:bg-surface-container-low disabled:cursor-not-allowed disabled:opacity-60"
+              disabled={eliminandoProducto}
+              onClick={cerrarModalEliminar}
+              type="button"
+            >
+              No, cancelar
+            </button>
+            <button
+              className="flex items-center justify-center gap-2 rounded-lg bg-error px-5 py-2.5 text-sm font-bold text-white shadow-lg shadow-error/20 transition-all hover:opacity-90 active:scale-95 disabled:cursor-not-allowed disabled:opacity-60"
+              disabled={eliminandoProducto}
+              onClick={confirmarEliminar}
+              type="button"
+            >
+              {eliminandoProducto ? (
+                <span className="material-symbols-outlined text-lg animate-spin">
+                  progress_activity
+                </span>
+              ) : (
+                <span className="material-symbols-outlined text-lg">
+                  delete
+                </span>
+              )}
+              Sí, eliminar
+            </button>
+          </div>
         </div>
-      )}
+      </Modal>
     </div>
   );
 }
