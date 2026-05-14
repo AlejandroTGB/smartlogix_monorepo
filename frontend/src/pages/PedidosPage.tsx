@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import Modal from "../components/modal";
+import Modal from "../components/Modal";
 import {
   getPedidos,
   createPedido,
