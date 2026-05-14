@@ -70,13 +70,19 @@ async def enrutador_principal(request: Request, path: str):
         # Si es una ruta normal, la pasamos tal cual: http://api_auth:8000/api/v1/auth/login
         url_final = f"{url_base}/{path}"
 
+    headers_filtrados = {
+        "Content-Type": request.headers.get("content-type", "application/json"),
+        "Authorization": request.headers.get("authorization", ""),
+    }
+    headers_filtrados = {k: v for k, v in headers_filtrados.items() if v}
+    
     # 4. Petición interna
     async with httpx.AsyncClient() as client:
         try:
             respuesta = await client.request(
                 method=request.method,
                 url=url_final,
-                headers=request.headers.raw,
+                headers=headers_filtrados,
                 content=await request.body()
             )
             return Response(
