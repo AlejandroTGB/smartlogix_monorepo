@@ -19,6 +19,9 @@ class ProductoUpdate(BaseModel):
 class StockUpdate(BaseModel):
     stock: int = Field(ge=0)
 
+class StockDescuento(BaseModel):
+    cantidad: int = Field(gt=0)
+
 
 # Salida
 class ProductoResponse(BaseModel):

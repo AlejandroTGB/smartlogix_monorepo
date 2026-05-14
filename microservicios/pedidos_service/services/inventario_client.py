@@ -40,3 +40,32 @@ async def validar_productos_en_inventario(cantidades_por_producto: Dict[int, int
                     status_code=400,
                     detail=f"Stock insuficiente para producto {producto_id}"
                 )
+
+
+async def descontar_stock_en_inventario(cantidades_por_producto: Dict[int, int]):
+    async with httpx.AsyncClient(timeout=5.0) as client:
+        for producto_id, cantidad in cantidades_por_producto.items():
+            url = f"{INVENTARIO_SERVICE_URL}/api/v1/inventario/productos/{producto_id}/descontar-stock"
+
+            try:
+                respuesta = await client.put(url, json={"cantidad": cantidad})
+            except httpx.RequestError:
+                raise HTTPException(status_code=503, detail="Inventario no disponible")
+
+            if respuesta.status_code == 404:
+                raise HTTPException(
+                    status_code=400,
+                    detail=f"Producto {producto_id} no existe en inventario"
+                )
+
+            if respuesta.status_code == 400:
+                raise HTTPException(
+                    status_code=400,
+                    detail=f"Stock insuficiente para producto {producto_id}"
+                )
+
+            if respuesta.status_code != 200:
+                raise HTTPException(
+                    status_code=502,
+                    detail="Error descontando stock en inventario"
+                )

@@ -4,7 +4,7 @@ from fastapi import APIRouter, HTTPException, Depends
 from sqlalchemy.orm import Session
 from database import get_db
 from models.producto_model import ProductoDB
-from schemas.producto_schema import ProductoCreate, ProductoResponse, ProductoUpdate, StockUpdate
+from schemas.producto_schema import ProductoCreate, ProductoResponse, ProductoUpdate, StockDescuento, StockUpdate
 
 router = APIRouter(
     prefix="/api/v1/inventario",
@@ -66,6 +66,20 @@ async def actualizar_stock(producto_id: int, datos: StockUpdate, db: Session = D
     if not producto:
         raise HTTPException(status_code=404, detail="Producto no encontrado")
     producto.stock = datos.stock
+    db.commit()
+    db.refresh(producto)
+    return producto
+
+
+#descontar stock
+@router.put("/productos/{producto_id}/descontar-stock", response_model=ProductoResponse)
+async def descontar_stock(producto_id: int, datos: StockDescuento, db: Session = Depends(get_db)):
+    producto = db.query(ProductoDB).filter(ProductoDB.id == producto_id).first()
+    if not producto:
+        raise HTTPException(status_code=404, detail="Producto no encontrado")
+    if producto.stock < datos.cantidad:
+        raise HTTPException(status_code=400, detail="Stock insuficiente")
+    producto.stock -= datos.cantidad
     db.commit()
     db.refresh(producto)
     return producto

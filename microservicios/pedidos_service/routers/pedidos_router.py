@@ -5,7 +5,7 @@ from sqlalchemy.orm import Session
 from database import get_db
 from models.pedido_model import DetallePedidoDB, PedidoDB
 from schemas.pedido_schema import EstadoPedidoUpdate, PedidoCreate, PedidoResponse
-from services.inventario_client import validar_productos_en_inventario
+from services.inventario_client import descontar_stock_en_inventario, validar_productos_en_inventario
 
 router = APIRouter(
     prefix="/api/v1/pedidos",
@@ -55,7 +55,14 @@ async def crear_pedido(datos: PedidoCreate, db: Session = Depends(get_db)):
         )
 
     db.add(nuevo_pedido)
-    db.commit()
+
+    try:
+        await descontar_stock_en_inventario(cantidades_por_producto)
+        db.commit()
+    except HTTPException:
+        db.rollback()
+        raise
+
     db.refresh(nuevo_pedido)
     return nuevo_pedido
 
