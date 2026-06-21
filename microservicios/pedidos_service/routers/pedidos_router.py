@@ -3,17 +3,20 @@ from typing import List
 from fastapi import APIRouter, HTTPException, Depends
 from sqlalchemy.orm import Session
 from database import get_db
-from models.pedido_model import DetallePedidoDB, PedidoDB
+from models.pedido_model import PedidoDB
 from schemas.pedido_schema import EstadoPedidoUpdate, PedidoCreate, PedidoResponse
 from services.inventario_client import descontar_stock_en_inventario, validar_productos_en_inventario
+from services.pedido_service import (
+    agrupar_cantidades_por_producto,
+    crear_detalles_pedido,
+    estados_permitidos,
+    validar_estado_pedido,
+)
 
 router = APIRouter(
     prefix="/api/v1/pedidos",
     tags=["Pedidos"]
 )
-
-estados_permitidos = ["pendiente", "preparando", "enviado", "entregado", "cancelado"]
-
 
 # Listar pedidos
 @router.get("", response_model=List[PedidoResponse])
@@ -33,11 +36,7 @@ async def obtener_pedido(pedido_id: int, db: Session = Depends(get_db)):
 # Crear pedido
 @router.post("", response_model=PedidoResponse, status_code=201)
 async def crear_pedido(datos: PedidoCreate, db: Session = Depends(get_db)):
-    cantidades_por_producto = {}
-
-    for producto in datos.productos:
-        cantidad_actual = cantidades_por_producto.get(producto.producto_id, 0)
-        cantidades_por_producto[producto.producto_id] = cantidad_actual + producto.cantidad
+    cantidades_por_producto = agrupar_cantidades_por_producto(datos.productos)
 
     await validar_productos_en_inventario(cantidades_por_producto)
 
@@ -46,13 +45,7 @@ async def crear_pedido(datos: PedidoCreate, db: Session = Depends(get_db)):
         estado="pendiente"
     )
 
-    for producto in datos.productos:
-        nuevo_pedido.productos.append(
-            DetallePedidoDB(
-                producto_id=producto.producto_id,
-                cantidad=producto.cantidad
-            )
-        )
+    nuevo_pedido.productos.extend(crear_detalles_pedido(datos.productos))
 
     db.add(nuevo_pedido)
 
@@ -70,8 +63,7 @@ async def crear_pedido(datos: PedidoCreate, db: Session = Depends(get_db)):
 # Actualizar estado
 @router.put("/{pedido_id}/estado", response_model=PedidoResponse)
 async def actualizar_estado(pedido_id: int, datos: EstadoPedidoUpdate, db: Session = Depends(get_db)):
-    if datos.estado not in estados_permitidos:
-        raise HTTPException(status_code=400, detail="Estado de pedido no permitido")
+    validar_estado_pedido(datos.estado)
 
     pedido = db.query(PedidoDB).filter(PedidoDB.id == pedido_id).first()
     if not pedido:
