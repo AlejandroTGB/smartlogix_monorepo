@@ -1,3 +1,4 @@
+import uuid
 from typing import List
 
 from fastapi import APIRouter, HTTPException, Depends
@@ -7,14 +8,14 @@ from sqlalchemy.orm import selectinload
 from database import get_db
 from models.pedido_model import DetallePedidoDB, PedidoDB
 from schemas.pedido_schema import EstadoPedidoUpdate, PedidoCreate, PedidoResponse
-from services.inventario_client import descontar_stock_en_inventario, validar_productos_en_inventario
+from rabbitmq import publish_stock_check
 
 router = APIRouter(
     prefix="/api/v1/pedidos",
     tags=["Pedidos"]
 )
 
-estados_permitidos = ["pendiente", "preparando", "enviado", "entregado", "cancelado"]
+estados_permitidos = ["pendiente_stock", "confirmado", "preparando", "enviado", "entregado", "cancelado"]
 
 
 # Listar pedidos
@@ -39,17 +40,13 @@ async def obtener_pedido(pedido_id: int, db: AsyncSession = Depends(get_db)):
 # Crear pedido
 @router.post("", response_model=PedidoResponse, status_code=201)
 async def crear_pedido(datos: PedidoCreate, db: AsyncSession = Depends(get_db)):
-    cantidades_por_producto = {}
-
-    for producto in datos.productos:
-        cantidad_actual = cantidades_por_producto.get(producto.producto_id, 0)
-        cantidades_por_producto[producto.producto_id] = cantidad_actual + producto.cantidad
-
-    await validar_productos_en_inventario(cantidades_por_producto)
-
+    # 1. Crear el pedido en estado PENDIENTE_STOCK
     nuevo_pedido = PedidoDB(
         cliente_id=datos.cliente_id,
-        estado="pendiente"
+        estado="pendiente_stock",
+        direccion_entrega=datos.direccion_entrega,
+        comuna=datos.comuna,
+        ciudad=datos.ciudad
     )
 
     for producto in datos.productos:
@@ -61,15 +58,18 @@ async def crear_pedido(datos: PedidoCreate, db: AsyncSession = Depends(get_db)):
         )
 
     db.add(nuevo_pedido)
-
-    try:
-        await descontar_stock_en_inventario(cantidades_por_producto)
-        await db.commit()
-    except HTTPException:
-        await db.rollback()
-        raise
-
+    await db.commit()
     await db.refresh(nuevo_pedido, attribute_names=["productos"])
+
+    # 2. Publicar evento a RabbitMQ (NO esperamos respuesta)
+    productos_para_validar = [
+        {"producto_id": p.producto_id, "cantidad": p.cantidad}
+        for p in datos.productos
+    ]
+    idempotency_key = str(uuid.uuid4())
+    await publish_stock_check(nuevo_pedido.id, productos_para_validar, idempotency_key)
+
+    # 3. Devolver el pedido al cliente (todavía PENDIENTE_STOCK)
     return nuevo_pedido
 
 

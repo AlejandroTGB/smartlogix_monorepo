@@ -13,6 +13,9 @@ class PedidoItemCreate(BaseModel):
 class PedidoCreate(BaseModel):
     cliente_id: int = Field(gt=0)
     productos: List[PedidoItemCreate]
+    direccion_entrega: str = Field(min_length=5, max_length=150)
+    comuna: str = Field(min_length=2, max_length=80)
+    ciudad: str = Field(min_length=2, max_length=80)
 
 class EstadoPedidoUpdate(BaseModel):
     estado: str
@@ -30,3 +33,6 @@ class PedidoResponse(BaseModel):
     cliente_id: int
     productos: List[PedidoItemResponse]
     estado: str
+    direccion_entrega: str
+    comuna: str
+    ciudad: str
