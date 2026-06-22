@@ -8,10 +8,16 @@ export interface Pedido {
   cliente_id: number;
   productos: PedidoItem[];
   estado: string;
+  direccion_entrega: string;
+  comuna: string;
+  ciudad: string;
 }
 export interface PedidoCreate {
   cliente_id: number;
   productos: PedidoItem[];
+  direccion_entrega: string;
+  comuna: string;
+  ciudad: string;
 }
 export interface EstadoPedidoUpdate {
   estado: string;
