@@ -24,6 +24,9 @@ services:
       context: ./microservicios/auth_service
     container_name: smartlogix_api_auth
     restart: always
+    # NOTA: En producción, estos puertos NO deberían exponerse.
+    # Los microservicios deben ser accesibles solo a través del API Gateway.
+    # Se exponen aquí para desarrollo y acceso a la documentación Scalar (/docs).
     ports:
       - "8000:8000"
     # leer variables JWT_SECRET_KEY y JWT_ALGORITHM del archivo .env
@@ -53,6 +56,9 @@ services:
       context: ./microservicios/inventario_service
     container_name: smartlogix_api_inventario
     restart: always
+    # NOTA: En producción, estos puertos NO deberían exponerse.
+    # Los microservicios deben ser accesibles solo a través del API Gateway.
+    # Se exponen aquí para desarrollo y acceso a la documentación Scalar (/docs).
     ports:
       - "8001:8000" #8001 para que no choque con el puerto
     depends_on:
@@ -79,6 +85,9 @@ services:
       context: ./microservicios/pedidos_service
     container_name: smartlogix_api_pedidos
     restart: always
+    # NOTA: En producción, estos puertos NO deberían exponerse.
+    # Los microservicios deben ser accesibles solo a través del API Gateway.
+    # Se exponen aquí para desarrollo y acceso a la documentación Scalar (/docs).
     ports:
       - "8002:8000" #8002 para que no choque con auth ni inventario
     environment:
@@ -108,6 +117,9 @@ services:
       context: ./microservicios/envios_service
     container_name: smartlogix_api_envios
     restart: always
+    # NOTA: En producción, estos puertos NO deberían exponerse.
+    # Los microservicios deben ser accesibles solo a través del API Gateway.
+    # Se exponen aquí para desarrollo y acceso a la documentación Scalar (/docs).
     ports:
       - "8003:8000" #8003 para que no choque con auth, inventario ni pedidos
     depends_on:
