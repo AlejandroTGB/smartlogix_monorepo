@@ -37,7 +37,7 @@ export default function LoginPage() {
   return (
     <div className="min-h-screen bg-surface font-body text-on-surface flex flex-col antialiased">
       <main className="flex-1 flex items-center justify-center p-4 lg:p-12">
-        <div className="w-full max-w-7xl flex flex-col md:flex-row bg-surface-container-lowest rounded-xl overflow-hidden min-h-[870px]">
+        <div className="w-full max-w-7xl flex flex-col md:flex-row bg-surface-container-lowest rounded-2xl overflow-hidden min-h-[870px] shadow-2xl ring-1 ring-black/5">
           {/* Left Panel */}
           <div className="hidden md:flex md:w-5/12 lg:w-1/2 relative flex-col justify-between p-12 text-white bg-gradient-to-br from-primary-container to-primary">
             <div className="z-10">
@@ -71,15 +71,14 @@ export default function LoginPage() {
                     </span>
                   </div>
                   <div>
-                    <p className="font-semibold text-white">Ricardo Mendes</p>
+                    <p className="font-semibold text-white">Cheto</p>
                     <p className="text-xs text-white/60">
-                      Director de Operaciones, Global Port
+                      Director de INACAP
                     </p>
                   </div>
                 </div>
                 <p className="mt-4 text-sm italic text-white/90">
-                  "La visibilidad en tiempo real que nos da Smart Logix es
-                  incomparable."
+                  "Si no enviamos los paquetes, los paquetes no llegan."
                 </p>
               </div>
             </div>
