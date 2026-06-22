@@ -2,16 +2,23 @@ import { useEffect, useState } from "react";
 import Modal from "../components/Modal";
 import {
   getPedidos,
+  getPedido,
   createPedido,
   updatePedidoEstado,
   deletePedido,
   type Pedido,
   type PedidoCreate,
 } from "../api/pedidos";
+import { getProductos, type Producto } from "../api/inventario";
+
 const estadoConfig: Record<string, { label: string; classes: string }> = {
-  pendiente: {
-    label: "Pendiente",
-    classes: "bg-tertiary-fixed text-on-tertiary-container",
+  pendiente_stock: {
+    label: "Verificando Stock",
+    classes: "bg-tertiary-fixed text-on-tertiary-container animate-pulse",
+  },
+  confirmado: {
+    label: "Confirmado",
+    classes: "bg-secondary-container text-on-secondary-container",
   },
   preparando: { label: "Preparando", classes: "bg-blue-100 text-blue-700" },
   enviado: {
@@ -27,13 +34,16 @@ const estadoConfig: Record<string, { label: string; classes: string }> = {
     classes: "bg-error-container text-on-error-container",
   },
 };
+
 const estadosPermitidos = [
-  "pendiente",
+  "pendiente_stock",
+  "confirmado",
   "preparando",
   "enviado",
   "entregado",
   "cancelado",
 ];
+
 export default function PedidosPage() {
   const [pedidos, setPedidos] = useState<Pedido[]>([]);
   const [loading, setLoading] = useState(true);
@@ -45,6 +55,10 @@ export default function PedidosPage() {
   const [nuevoClienteId, setNuevoClienteId] = useState("");
   const [nuevoProductoId, setNuevoProductoId] = useState("");
   const [nuevoCantidad, setNuevoCantidad] = useState("");
+  const [nuevoDireccion, setNuevoDireccion] = useState("");
+  const [nuevoComuna, setNuevoComuna] = useState("");
+  const [nuevoCiudad, setNuevoCiudad] = useState("");
+  const [productos, setProductos] = useState<Producto[]>([]);
   // Estado
   const [pedidoEditarEstado, setPedidoEditarEstado] = useState<Pedido | null>(
     null,
@@ -58,17 +72,41 @@ export default function PedidosPage() {
   );
   const [eliminando, setEliminando] = useState(false);
   const [errorEliminar, setErrorEliminar] = useState("");
+
   useEffect(() => {
     getPedidos()
       .then(setPedidos)
       .catch(console.error)
       .finally(() => setLoading(false));
   }, []);
+
+  // Polling: consultar pedidos en pendiente_stock cada 2 segundos
+  useEffect(() => {
+    const pendientes = pedidos.filter((p) => p.estado === "pendiente_stock");
+    if (pendientes.length === 0) return;
+
+    const intervalo = setInterval(async () => {
+      const actualizados = await Promise.all(
+        pendientes.map((p) => getPedido(p.id)),
+      );
+      setPedidos((prev) =>
+        prev.map((p) => {
+          const actualizado = actualizados.find((a) => a.id === p.id);
+          return actualizado ? actualizado : p;
+        }),
+      );
+    }, 2000);
+
+    return () => clearInterval(intervalo);
+  }, [pedidos]);
+
   const totalProductos = pedidos.reduce(
     (acc, p) => acc + p.productos.length,
     0,
   );
-  const pendientes = pedidos.filter((p) => p.estado === "pendiente").length;
+  const pendientes = pedidos.filter(
+    (p) => p.estado === "pendiente_stock",
+  ).length;
   const entregados = pedidos.filter((p) => p.estado === "entregado").length;
   const tasaEntrega =
     pedidos.length > 0 ? Math.round((entregados / pedidos.length) * 100) : 0;
@@ -77,10 +115,24 @@ export default function PedidosPage() {
     ? pedidos.filter(
         (p) =>
           `#${p.id.toString().padStart(4, "0")}`.includes(busqueda) ||
-          `Cliente #${p.cliente_id}`.toLowerCase().includes(busqueda.toLowerCase()) ||
-          p.estado.toLowerCase().includes(busqueda.toLowerCase())
+          `Cliente #${p.cliente_id}`
+            .toLowerCase()
+            .includes(busqueda.toLowerCase()) ||
+          p.estado.toLowerCase().includes(busqueda.toLowerCase()),
       )
     : pedidos;
+
+  // Abrir modal y cargar productos
+  const abrirModalCrear = async () => {
+    setModalCrearAbierto(true);
+    try {
+      const lista = await getProductos();
+      setProductos(lista);
+    } catch {
+      console.error("No se pudieron cargar los productos");
+    }
+  };
+
   // Crear pedido
   const cerrarModalCrear = () => {
     if (guardando) return;
@@ -88,8 +140,12 @@ export default function PedidosPage() {
     setNuevoClienteId("");
     setNuevoProductoId("");
     setNuevoCantidad("");
+    setNuevoDireccion("");
+    setNuevoComuna("");
+    setNuevoCiudad("");
     setErrorCrear("");
   };
+
   const guardarPedido = async (e: React.FormEvent) => {
     e.preventDefault();
     setErrorCrear("");
@@ -101,16 +157,16 @@ export default function PedidosPage() {
           cantidad: Number(nuevoCantidad),
         },
       ],
+      direccion_entrega: nuevoDireccion,
+      comuna: nuevoComuna,
+      ciudad: nuevoCiudad,
     };
     if (!datos.cliente_id || Number.isNaN(datos.cliente_id)) {
       setErrorCrear("El ID del cliente es obligatorio.");
       return;
     }
-    if (
-      !datos.productos[0].producto_id ||
-      Number.isNaN(datos.productos[0].producto_id)
-    ) {
-      setErrorCrear("El ID del producto es obligatorio.");
+    if (!datos.productos[0].producto_id) {
+      setErrorCrear("Debes seleccionar un producto.");
       return;
     }
     if (
@@ -119,6 +175,20 @@ export default function PedidosPage() {
       datos.productos[0].cantidad <= 0
     ) {
       setErrorCrear("La cantidad debe ser mayor a 0.");
+      return;
+    }
+    if (!datos.direccion_entrega || datos.direccion_entrega.length < 5) {
+      setErrorCrear(
+        "La dirección de entrega es obligatoria (mínimo 5 caracteres).",
+      );
+      return;
+    }
+    if (!datos.comuna || datos.comuna.length < 2) {
+      setErrorCrear("La comuna es obligatoria.");
+      return;
+    }
+    if (!datos.ciudad || datos.ciudad.length < 2) {
+      setErrorCrear("La ciudad es obligatoria.");
       return;
     }
     try {
@@ -132,6 +202,7 @@ export default function PedidosPage() {
       setGuardando(false);
     }
   };
+
   // Cambiar estado
   const guardarEstado = async () => {
     if (!pedidoEditarEstado || !nuevoEstado) return;
@@ -152,6 +223,7 @@ export default function PedidosPage() {
       setGuardandoEstado(false);
     }
   };
+
   // Eliminar
   const confirmarEliminar = async () => {
     if (!pedidoParaEliminar) return;
@@ -167,6 +239,7 @@ export default function PedidosPage() {
       setEliminando(false);
     }
   };
+
   return (
     <div className="space-y-10">
       {/* Header */}
@@ -254,7 +327,7 @@ export default function PedidosPage() {
           </div>
           <button
             className="w-full md:w-auto flex items-center justify-center gap-2 px-6 py-2.5 bg-secondary text-white rounded-xl text-sm font-bold shadow-lg shadow-secondary/20 hover:opacity-90 transition-all active:scale-95 cursor-pointer"
-            onClick={() => setModalCrearAbierto(true)}
+            onClick={abrirModalCrear}
           >
             <span className="material-symbols-outlined text-sm">add</span>
             Nuevo Pedido
@@ -384,18 +457,21 @@ export default function PedidosPage() {
                 className="text-[11px] font-bold uppercase tracking-wider text-on-surface-variant"
                 htmlFor="pedido-producto"
               >
-                ID del Producto
+                Producto
               </label>
-              <input
-                className="w-full rounded-lg bg-surface-container-low px-4 py-3 text-sm text-on-surface outline-none ring-1 ring-transparent transition focus:ring-2 focus:ring-secondary"
+              <select
+                className="w-full rounded-lg bg-surface-container-low px-4 py-3 text-sm text-on-surface outline-none ring-1 ring-transparent transition focus:ring-2 focus:ring-secondary cursor-pointer"
                 id="pedido-producto"
-                min="1"
                 onChange={(e) => setNuevoProductoId(e.target.value)}
-                placeholder="Ej: 1"
-                required
-                type="number"
                 value={nuevoProductoId}
-              />
+              >
+                <option value="">Selecciona un producto</option>
+                {productos.map((p) => (
+                  <option key={p.id} value={p.id}>
+                    {p.nombre} — Stock: {p.stock} — ${p.precio}
+                  </option>
+                ))}
+              </select>
             </div>
             <div className="space-y-2">
               <label
@@ -413,6 +489,62 @@ export default function PedidosPage() {
                 required
                 type="number"
                 value={nuevoCantidad}
+              />
+            </div>
+          </div>
+          <div className="space-y-2">
+            <label
+              className="text-[11px] font-bold uppercase tracking-wider text-on-surface-variant"
+              htmlFor="pedido-direccion"
+            >
+              Dirección de Entrega
+            </label>
+            <input
+              className="w-full rounded-lg bg-surface-container-low px-4 py-3 text-sm text-on-surface outline-none ring-1 ring-transparent transition focus:ring-2 focus:ring-secondary"
+              id="pedido-direccion"
+              minLength={5}
+              onChange={(e) => setNuevoDireccion(e.target.value)}
+              placeholder="Ej: Av Siempre Viva 742"
+              required
+              type="text"
+              value={nuevoDireccion}
+            />
+          </div>
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+            <div className="space-y-2">
+              <label
+                className="text-[11px] font-bold uppercase tracking-wider text-on-surface-variant"
+                htmlFor="pedido-comuna"
+              >
+                Comuna
+              </label>
+              <input
+                className="w-full rounded-lg bg-surface-container-low px-4 py-3 text-sm text-on-surface outline-none ring-1 ring-transparent transition focus:ring-2 focus:ring-secondary"
+                id="pedido-comuna"
+                minLength={2}
+                onChange={(e) => setNuevoComuna(e.target.value)}
+                placeholder="Ej: Las Condes"
+                required
+                type="text"
+                value={nuevoComuna}
+              />
+            </div>
+            <div className="space-y-2">
+              <label
+                className="text-[11px] font-bold uppercase tracking-wider text-on-surface-variant"
+                htmlFor="pedido-ciudad"
+              >
+                Ciudad
+              </label>
+              <input
+                className="w-full rounded-lg bg-surface-container-low px-4 py-3 text-sm text-on-surface outline-none ring-1 ring-transparent transition focus:ring-2 focus:ring-secondary"
+                id="pedido-ciudad"
+                minLength={2}
+                onChange={(e) => setNuevoCiudad(e.target.value)}
+                placeholder="Ej: Santiago"
+                required
+                type="text"
+                value={nuevoCiudad}
               />
             </div>
           </div>
