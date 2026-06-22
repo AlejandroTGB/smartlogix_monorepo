@@ -1,12 +1,9 @@
 from fastapi import FastAPI
 from scalar_fastapi import get_scalar_api_reference
 from routers.auth_router import router as rutas_autenticacion
-from database import engine
+from database import engine, Base
 import models.user_model
 
-# Esta línea va a Postgres y le dice: 
-# "Revisa mis modelos y crea las tablas que falten"
-models.user_model.Base.metadata.create_all(bind=engine)
 
 app = FastAPI(
     title="SmartLogix - Servicio de Autenticación",
@@ -16,6 +13,12 @@ app = FastAPI(
     redoc_url=None #apague docs y redoc porque usaremos scalar jeje
 )
 
+#crear tablas al arrancar la app
+@app.on_event("startup")
+async def crear_tablas():
+    async with engine.begin() as conn:
+        await conn.run_sync(Base.metadata.create_all)
+        
 #rutas
 app.include_router(rutas_autenticacion)
 
