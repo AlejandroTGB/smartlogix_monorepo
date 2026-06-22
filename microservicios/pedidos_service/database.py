@@ -1,24 +1,14 @@
-from sqlalchemy import create_engine
+from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession, async_sessionmaker
 from sqlalchemy.orm import declarative_base
-from sqlalchemy.orm import sessionmaker
 
-#url conexion
-SQLALCHEMY_DATABASE_URL = "postgresql://postgres:postgres@db_pedidos:5432/db_pedidos"
+SQLALCHEMY_DATABASE_URL = "postgresql+asyncpg://postgres:postgres@db_pedidos:5432/db_pedidos"
 
-#motor (traductor)
-#envia las instrucciones SQL a la db
-engine = create_engine(SQLALCHEMY_DATABASE_URL)
+engine = create_async_engine(SQLALCHEMY_DATABASE_URL)
 
-#fabrica de sesiones
-SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
+AsyncSessionLocal = async_sessionmaker(bind=engine, class_=AsyncSession, expire_on_commit=False)
 
-#Clase base para los modelos
 Base = declarative_base()
 
-#inyector de dependencias
-def get_db():
-    db = SessionLocal() #abre la conexion
-    try:
-        yield db        #entrega la conexion al router para que la use
-    finally:
-        db.close()      #cierra la conexion cuando el router termine su pega
+async def get_db():
+    async with AsyncSessionLocal() as db:
+        yield db
