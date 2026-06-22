@@ -24,6 +24,9 @@ services:
       context: ./microservicios/auth_service
     container_name: smartlogix_api_auth
     restart: always
+    # NOTA: En producción, estos puertos NO deberían exponerse.
+    # Los microservicios deben ser accesibles solo a través del API Gateway.
+    # Se exponen aquí para desarrollo y acceso a la documentación Scalar (/docs).
     ports:
       - "8000:8000"
     # leer variables JWT_SECRET_KEY y JWT_ALGORITHM del archivo .env
@@ -55,8 +58,11 @@ services:
     restart: always
     ports:
       - "8001:8000" #8001 para que no choque con el puerto
+    environment:
+      RABBITMQ_URL: amqp://rabbitmq:5672
     depends_on:
       - db_inventario
+      - rabbitmq
 
   #============================
   # PEDIDOS SERVICE
@@ -83,9 +89,11 @@ services:
       - "8002:8000" #8002 para que no choque con auth ni inventario
     environment:
       INVENTARIO_SERVICE_URL: http://api_inventario:8000
+      RABBITMQ_URL: amqp://rabbitmq:5672
     depends_on:
       - db_pedidos
       - api_inventario
+      - rabbitmq
 
   #============================
   # ENVIOS SERVICE
@@ -110,8 +118,24 @@ services:
     restart: always
     ports:
       - "8003:8000" #8003 para que no choque con auth, inventario ni pedidos
+    environment:
+      RABBITMQ_URL: amqp://rabbitmq:5672
     depends_on:
       - db_envios
+      - rabbitmq
+
+  #============================
+  # RABBITMQ (Message Broker)
+  #============================
+  rabbitmq:
+    image: rabbitmq:3-management
+    container_name: smartlogix_rabbitmq
+    restart: always
+    ports:
+      - "5672:5672" # AMQP - los servicios se conectan acá
+      - "15672:15672" # UI de gestión - http://localhost:15672
+    volumes:
+      - rabbitmq_data:/var/lib/rabbitmq
 
   #============================
   # API GATEWAY
@@ -151,3 +175,4 @@ volumes:
   postgres_data_inv:
   postgres_data_pedidos:
   postgres_data_envios:
+  rabbitmq_data:

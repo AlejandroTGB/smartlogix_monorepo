@@ -55,3 +55,9 @@ coverage/
 # =========================
 .DS_Store
 Thumbs.db
+
+# =========================
+# 5. ARCHIVOS DE DOCUMENTACIÓN LOCAL
+# =========================
+GUIA_PRESENTACION.md
+OPEN_NOTEBOOK.md

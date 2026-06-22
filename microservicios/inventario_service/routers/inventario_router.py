@@ -1,7 +1,8 @@
 from typing import List
 
 from fastapi import APIRouter, HTTPException, Depends
-from sqlalchemy.orm import Session
+from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy import select
 from database import get_db
 from models.producto_model import ProductoDB
 from schemas.producto_schema import ProductoCreate, ProductoResponse, ProductoUpdate, StockDescuento, StockUpdate
@@ -11,42 +12,27 @@ router = APIRouter(
     tags=["Inventario"]
 )
 
-#lista temporal para testear rutas de inventario
-##{
-        #"id": 1,
-        #"nombre": "Manzana",
-        #"descripcion": "Asitica y verde",
-        #"precio": 990,
-        #"stock": 26
-    #},
-    #{
-        #"id": 2,
-        #"nombre": "Monitor Thunderobot",
-        #"descripcion": "Monitor QHD de 27p",
-        #"precio": 125990,
-        #"stock": 8
-    #}
-#]
 
-
-#listar productos
+# listar productos
 @router.get("/productos", response_model=List[ProductoResponse])
-async def listar_productos(db: Session = Depends(get_db)):
-    return db.query(ProductoDB).all()
+async def listar_productos(db: AsyncSession = Depends(get_db)):
+    resultado = await db.execute(select(ProductoDB))
+    return resultado.scalars().all()
 
 
-#buscar producto id
+# buscar producto por id
 @router.get("/productos/{producto_id}", response_model=ProductoResponse)
-async def obtener_producto(producto_id: int, db: Session = Depends(get_db)):
-    producto = db.query(ProductoDB).filter(ProductoDB.id == producto_id).first()
+async def obtener_producto(producto_id: int, db: AsyncSession = Depends(get_db)):
+    resultado = await db.execute(select(ProductoDB).where(ProductoDB.id == producto_id))
+    producto = resultado.scalar_one_or_none()
     if not producto:
-         raise HTTPException(status_code=404, detail="Producto no encontrado")
+        raise HTTPException(status_code=404, detail="Producto no encontrado")
     return producto
 
 
-#crear producto
+# crear producto
 @router.post("/productos", response_model=ProductoResponse, status_code=201)
-async def crear_producto(datos: ProductoCreate, db: Session = Depends(get_db)):
+async def crear_producto(datos: ProductoCreate, db: AsyncSession = Depends(get_db)):
     nuevo_producto = ProductoDB(
         nombre=datos.nombre,
         descripcion=datos.descripcion,
@@ -54,58 +40,62 @@ async def crear_producto(datos: ProductoCreate, db: Session = Depends(get_db)):
         stock=datos.stock
     )
     db.add(nuevo_producto)
-    db.commit()
-    db.refresh(nuevo_producto)
+    await db.commit()
+    await db.refresh(nuevo_producto)
     return nuevo_producto
 
 
-#actualizar stock
+# actualizar stock
 @router.put("/productos/{producto_id}/stock", response_model=ProductoResponse)
-async def actualizar_stock(producto_id: int, datos: StockUpdate, db: Session = Depends(get_db)):
-    producto = db.query(ProductoDB).filter(ProductoDB.id == producto_id).first()
+async def actualizar_stock(producto_id: int, datos: StockUpdate, db: AsyncSession = Depends(get_db)):
+    resultado = await db.execute(select(ProductoDB).where(ProductoDB.id == producto_id))
+    producto = resultado.scalar_one_or_none()
     if not producto:
         raise HTTPException(status_code=404, detail="Producto no encontrado")
     producto.stock = datos.stock
-    db.commit()
-    db.refresh(producto)
+    await db.commit()
+    await db.refresh(producto)
     return producto
 
 
-#descontar stock
+# descontar stock
 @router.put("/productos/{producto_id}/descontar-stock", response_model=ProductoResponse)
-async def descontar_stock(producto_id: int, datos: StockDescuento, db: Session = Depends(get_db)):
-    producto = db.query(ProductoDB).filter(ProductoDB.id == producto_id).first()
+async def descontar_stock(producto_id: int, datos: StockDescuento, db: AsyncSession = Depends(get_db)):
+    resultado = await db.execute(select(ProductoDB).where(ProductoDB.id == producto_id))
+    producto = resultado.scalar_one_or_none()
     if not producto:
         raise HTTPException(status_code=404, detail="Producto no encontrado")
     if producto.stock < datos.cantidad:
         raise HTTPException(status_code=400, detail="Stock insuficiente")
     producto.stock -= datos.cantidad
-    db.commit()
-    db.refresh(producto)
+    await db.commit()
+    await db.refresh(producto)
     return producto
 
 
-#actualizar producto
+# actualizar producto
 @router.put("/productos/{producto_id}", response_model=ProductoResponse)
-async def actualizar_producto(producto_id: int, datos: ProductoUpdate, db: Session = Depends(get_db)):
-    producto = db.query(ProductoDB).filter(ProductoDB.id == producto_id).first()
+async def actualizar_producto(producto_id: int, datos: ProductoUpdate, db: AsyncSession = Depends(get_db)):
+    resultado = await db.execute(select(ProductoDB).where(ProductoDB.id == producto_id))
+    producto = resultado.scalar_one_or_none()
     if not producto:
         raise HTTPException(status_code=404, detail="Producto no encontrado")
     producto.nombre = datos.nombre
     producto.descripcion = datos.descripcion
     producto.precio = datos.precio
     producto.stock = datos.stock
-    db.commit()
-    db.refresh(producto)
+    await db.commit()
+    await db.refresh(producto)
     return producto
 
 
-#eliminar producto
+# eliminar producto
 @router.delete("/productos/{producto_id}")
-async def eliminar_producto(producto_id: int, db: Session = Depends(get_db)):
-    producto = db.query(ProductoDB).filter(ProductoDB.id == producto_id).first()
+async def eliminar_producto(producto_id: int, db: AsyncSession = Depends(get_db)):
+    resultado = await db.execute(select(ProductoDB).where(ProductoDB.id == producto_id))
+    producto = resultado.scalar_one_or_none()
     if not producto:
         raise HTTPException(status_code=404, detail="Producto no encontrado")
-    db.delete(producto)
-    db.commit()
+    await db.delete(producto)
+    await db.commit()
     return {"mensaje": "Producto eliminado correctamente"}

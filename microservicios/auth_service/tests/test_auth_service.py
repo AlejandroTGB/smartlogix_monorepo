@@ -2,6 +2,7 @@ import sys
 from pathlib import Path
 
 import bcrypt
+import pytest
 
 SERVICE_DIR = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(SERVICE_DIR))
@@ -19,10 +20,7 @@ class FakeQuery:
     def __init__(self, result):
         self.result = result
 
-    def filter(self, *_args, **_kwargs):
-        return self
-
-    def first(self):
+    def scalar_one_or_none(self):
         return self.result
 
 
@@ -33,16 +31,16 @@ class FakeDB:
         self.committed = False
         self.refreshed = None
 
-    def query(self, _model):
+    async def execute(self, _query):
         return FakeQuery(self.query_result)
 
     def add(self, item):
         self.added = item
 
-    def commit(self):
+    async def commit(self):
         self.committed = True
 
-    def refresh(self, item):
+    async def refresh(self, item):
         self.refreshed = item
         item.id = 1
         item.rol = item.rol or "user"
@@ -63,7 +61,8 @@ def crear_usuario(password_plana="secreto", rol="admin"):
     return usuario
 
 
-def test_registrar_usuario_guarda_password_hasheada():
+@pytest.mark.asyncio
+async def test_registrar_usuario_guarda_password_hasheada():
     db = FakeDB(query_result=None)
     datos = RegisterRequest(
         email="nuevo@smartlogix.cl",
@@ -71,7 +70,7 @@ def test_registrar_usuario_guarda_password_hasheada():
         nombre="Usuario Nuevo",
     )
 
-    usuario = AuthService.registrar_usuario(db, datos)
+    usuario = await AuthService.registrar_usuario(db, datos)
 
     assert db.committed is True
     assert db.added.email == "nuevo@smartlogix.cl"
@@ -80,7 +79,8 @@ def test_registrar_usuario_guarda_password_hasheada():
     assert usuario is db.added
 
 
-def test_registrar_usuario_rechaza_correo_existente():
+@pytest.mark.asyncio
+async def test_registrar_usuario_rechaza_correo_existente():
     db = FakeDB(query_result=crear_usuario())
     datos = RegisterRequest(
         email="admin@smartlogix.cl",
@@ -88,19 +88,20 @@ def test_registrar_usuario_rechaza_correo_existente():
         nombre="Admin",
     )
 
-    usuario = AuthService.registrar_usuario(db, datos)
+    usuario = await AuthService.registrar_usuario(db, datos)
 
     assert usuario is None
     assert db.added is None
     assert db.committed is False
 
 
-def test_autenticar_usuario_devuelve_token_con_credenciales_validas():
+@pytest.mark.asyncio
+async def test_autenticar_usuario_devuelve_token_con_credenciales_validas():
     usuario_db = crear_usuario(password_plana="secreto", rol="admin")
     db = FakeDB(query_result=usuario_db)
     credenciales = LoginRequest(email="admin@smartlogix.cl", password="secreto")
 
-    respuesta = AuthService.autenticar_usuario(db, credenciales)
+    respuesta = await AuthService.autenticar_usuario(db, credenciales)
 
     assert respuesta["id"] == 7
     assert respuesta["nombre"] == "Admin"
@@ -109,11 +110,12 @@ def test_autenticar_usuario_devuelve_token_con_credenciales_validas():
     assert len(respuesta["token"]) > 20
 
 
-def test_autenticar_usuario_rechaza_password_incorrecta():
+@pytest.mark.asyncio
+async def test_autenticar_usuario_rechaza_password_incorrecta():
     usuario_db = crear_usuario(password_plana="secreto")
     db = FakeDB(query_result=usuario_db)
     credenciales = LoginRequest(email="admin@smartlogix.cl", password="mala")
 
-    respuesta = AuthService.autenticar_usuario(db, credenciales)
+    respuesta = await AuthService.autenticar_usuario(db, credenciales)
 
     assert respuesta is None
