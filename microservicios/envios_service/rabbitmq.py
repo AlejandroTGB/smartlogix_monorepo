@@ -1,5 +1,6 @@
 import json
 import os
+import uuid
 import aio_pika
 from sqlalchemy import select
 from database import AsyncSessionLocal
@@ -30,16 +31,36 @@ async def disconnect():
         await _connection.close()
 
 
+async def publish_envio_estado_actualizado(envio_id: int, pedido_id: int, estado: str):
+    """Publicar evento para sincronizar el estado del pedido asociado."""
+    payload = {
+        "event": "envio.estado_actualizado",
+        "envio_id": envio_id,
+        "pedido_id": pedido_id,
+        "estado": estado,
+        "idempotency_key": str(uuid.uuid4())
+    }
+    message = aio_pika.Message(
+        body=json.dumps(payload).encode(),
+        delivery_mode=aio_pika.DeliveryMode.PERSISTENT
+    )
+    await _exchange.publish(message, routing_key="envio.estado_actualizado")
+
+
 async def start_consumer():
     """Consumir eventos PedidoConfirmado y crear envío automático."""
     queue = await _channel.declare_queue("envios.pedido_confirmado", durable=True)
     await queue.bind(_exchange, routing_key="pedido.confirmado")
+    await queue.bind(_exchange, routing_key="pedido.estado_actualizado")
 
     async with queue.iterator() as queue_iter:
         async for message in queue_iter:
             async with message.process():
                 data = json.loads(message.body.decode())
-                await handle_pedido_confirmado(data)
+                if data["event"] == "pedido.estado_actualizado":
+                    await handle_pedido_estado_actualizado(data)
+                else:
+                    await handle_pedido_confirmado(data)
 
 
 async def handle_pedido_confirmado(data: dict):
@@ -66,4 +87,34 @@ async def handle_pedido_confirmado(data: dict):
         db.add(nuevo_envio)
         await db.flush()
         nuevo_envio.codigo_seguimiento = f"ENV-{nuevo_envio.id:05d}"
+        await db.commit()
+
+
+def mapear_estado_pedido_a_envio(estado_pedido: str) -> str:
+    """Traducir estados de pedido al estado visible del envio."""
+    estados = {
+        "confirmado": "pendiente",
+        "preparando": "preparando",
+        "enviado": "despachado",
+        "entregado": "entregado",
+        "cancelado": "cancelado"
+    }
+    return estados[estado_pedido]
+
+
+async def handle_pedido_estado_actualizado(data: dict):
+    """Actualizar el envio cuando cambia el estado del pedido asociado."""
+    estado_pedido = data["estado"]
+    if estado_pedido not in ["confirmado", "preparando", "enviado", "entregado", "cancelado"]:
+        return
+
+    async with AsyncSessionLocal() as db:
+        resultado = await db.execute(
+            select(EnvioDB).where(EnvioDB.pedido_id == data["pedido_id"])
+        )
+        envio = resultado.scalar_one_or_none()
+        if not envio:
+            return
+
+        envio.estado = mapear_estado_pedido_a_envio(estado_pedido)
         await db.commit()

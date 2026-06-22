@@ -5,6 +5,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
 from database import get_db
 from models.envio_model import EnvioDB
+from rabbitmq import publish_envio_estado_actualizado
 from schemas.envio_schema import EnvioCreate, EnvioResponse, EstadoEnvioUpdate, EnvioUpdate
 
 
@@ -67,6 +68,7 @@ async def actualizar_estado(envio_id: int, datos: EstadoEnvioUpdate, db: AsyncSe
     envio.estado = datos.estado
     await db.commit()
     await db.refresh(envio)
+    await publish_envio_estado_actualizado(envio.id, envio.pedido_id, envio.estado)
     return envio
 
 # Actualizar envio completo

@@ -8,7 +8,7 @@ from sqlalchemy.orm import selectinload
 from database import get_db
 from models.pedido_model import DetallePedidoDB, PedidoDB
 from schemas.pedido_schema import EstadoPedidoUpdate, PedidoCreate, PedidoResponse
-from rabbitmq import publish_stock_check
+from rabbitmq import publish_pedido_estado_actualizado, publish_stock_check
 
 router = APIRouter(
     prefix="/api/v1/pedidos",
@@ -88,6 +88,7 @@ async def actualizar_estado(pedido_id: int, datos: EstadoPedidoUpdate, db: Async
     pedido.estado = datos.estado
     await db.commit()
     await db.refresh(pedido, attribute_names=["productos"])
+    await publish_pedido_estado_actualizado(pedido.id, pedido.estado)
     return pedido
 
 
