@@ -41,3 +41,17 @@ export async function updateEnvioEstado(
 export async function deleteEnvio(id: number): Promise<void> {
   await client.delete(`/api/v1/envios/${id}`);
 }
+export interface EnvioUpdate {
+  direccion_entrega: string;
+  comuna: string;
+  ciudad: string;
+  transportista?: string | null;
+}
+
+export async function updateEnvio(
+  id: number,
+  envio: EnvioUpdate,
+): Promise<Envio> {
+  const { data } = await client.put(`/api/v1/envios/${id}`, envio);
+  return data;
+}

@@ -5,7 +5,8 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
 from database import get_db
 from models.envio_model import EnvioDB
-from schemas.envio_schema import EnvioCreate, EnvioResponse, EstadoEnvioUpdate
+from schemas.envio_schema import EnvioCreate, EnvioResponse, EstadoEnvioUpdate, EnvioUpdate
+
 
 router = APIRouter(
     prefix="/api/v1/envios",
@@ -68,6 +69,20 @@ async def actualizar_estado(envio_id: int, datos: EstadoEnvioUpdate, db: AsyncSe
     await db.refresh(envio)
     return envio
 
+# Actualizar envio completo
+@router.put("/{envio_id}", response_model=EnvioResponse)
+async def actualizar_envio(envio_id: int, datos: EnvioUpdate, db: AsyncSession = Depends(get_db)):
+    resultado = await db.execute(select(EnvioDB).where(EnvioDB.id == envio_id))
+    envio = resultado.scalar_one_or_none()
+    if not envio:
+        raise HTTPException(status_code=404, detail="Envio no encontrado")
+    envio.direccion_entrega = datos.direccion_entrega
+    envio.comuna = datos.comuna
+    envio.ciudad = datos.ciudad
+    envio.transportista = datos.transportista
+    await db.commit()
+    await db.refresh(envio)
+    return envio
 
 # Eliminar envio
 @router.delete("/{envio_id}")

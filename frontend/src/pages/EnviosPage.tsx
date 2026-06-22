@@ -3,11 +3,14 @@ import Modal from "../components/Modal";
 import {
   getEnvios,
   createEnvio,
+  updateEnvio,
   updateEnvioEstado,
   deleteEnvio,
   type Envio,
   type EnvioCreate,
+  type EnvioUpdate,
 } from "../api/envios";
+
 const estadoConfig: Record<string, { label: string; classes: string }> = {
   pendiente: {
     label: "Pendiente",
@@ -31,6 +34,7 @@ const estadoConfig: Record<string, { label: string; classes: string }> = {
     classes: "bg-error-container text-on-error-container",
   },
 };
+
 const estadosPermitidos = [
   "pendiente",
   "preparando",
@@ -39,6 +43,7 @@ const estadosPermitidos = [
   "entregado",
   "cancelado",
 ];
+
 export default function EnviosPage() {
   const [envios, setEnvios] = useState<Envio[]>([]);
   const [loading, setLoading] = useState(true);
@@ -54,6 +59,14 @@ export default function EnviosPage() {
   const [nuevaComuna, setNuevaComuna] = useState("");
   const [nuevaCiudad, setNuevaCiudad] = useState("");
   const [nuevoTransportista, setNuevoTransportista] = useState("");
+  // Editar
+  const [envioEditar, setEnvioEditar] = useState<Envio | null>(null);
+  const [editDireccion, setEditDireccion] = useState("");
+  const [editComuna, setEditComuna] = useState("");
+  const [editCiudad, setEditCiudad] = useState("");
+  const [editTransportista, setEditTransportista] = useState("");
+  const [guardandoEdicion, setGuardandoEdicion] = useState(false);
+  const [errorEdicion, setErrorEdicion] = useState("");
   // Estado
   const [envioEditarEstado, setEnvioEditarEstado] = useState<Envio | null>(
     null,
@@ -67,12 +80,14 @@ export default function EnviosPage() {
   );
   const [eliminando, setEliminando] = useState(false);
   const [errorEliminar, setErrorEliminar] = useState("");
+
   useEffect(() => {
     getEnvios()
       .then(setEnvios)
       .catch(console.error)
       .finally(() => setLoading(false));
   }, []);
+
   const enTransito = envios.filter((e) => e.estado === "en_transito").length;
   const entregados = envios.filter((e) => e.estado === "entregado").length;
 
@@ -88,6 +103,7 @@ export default function EnviosPage() {
       (e.transportista && e.transportista.toLowerCase().includes(b))
     );
   });
+
   // Crear envío
   const cerrarModalCrear = () => {
     if (guardando) return;
@@ -99,6 +115,7 @@ export default function EnviosPage() {
     setNuevoTransportista("");
     setErrorCrear("");
   };
+
   const guardarEnvio = async (e: React.FormEvent) => {
     e.preventDefault();
     setErrorCrear("");
@@ -136,6 +153,62 @@ export default function EnviosPage() {
       setGuardando(false);
     }
   };
+
+  // Editar envío
+  const abrirModalEditar = (envio: Envio) => {
+    setEnvioEditar(envio);
+    setEditDireccion(envio.direccion_entrega);
+    setEditComuna(envio.comuna);
+    setEditCiudad(envio.ciudad);
+    setEditTransportista(envio.transportista || "");
+    setErrorEdicion("");
+  };
+
+  const cerrarModalEditar = () => {
+    if (guardandoEdicion) return;
+    setEnvioEditar(null);
+    setEditDireccion("");
+    setEditComuna("");
+    setEditCiudad("");
+    setEditTransportista("");
+    setErrorEdicion("");
+  };
+
+  const guardarEdicionEnvio = async () => {
+    if (!envioEditar) return;
+    setErrorEdicion("");
+    const datos: EnvioUpdate = {
+      direccion_entrega: editDireccion,
+      comuna: editComuna,
+      ciudad: editCiudad,
+      transportista: editTransportista || null,
+    };
+    if (!datos.direccion_entrega.trim()) {
+      setErrorEdicion("La dirección es obligatoria.");
+      return;
+    }
+    if (!datos.comuna.trim()) {
+      setErrorEdicion("La comuna es obligatoria.");
+      return;
+    }
+    if (!datos.ciudad.trim()) {
+      setErrorEdicion("La ciudad es obligatoria.");
+      return;
+    }
+    try {
+      setGuardandoEdicion(true);
+      const actualizado = await updateEnvio(envioEditar.id, datos);
+      setEnvios((prev) =>
+        prev.map((e) => (e.id === actualizado.id ? actualizado : e)),
+      );
+      cerrarModalEditar();
+    } catch {
+      setErrorEdicion("No se pudo actualizar el envío.");
+    } finally {
+      setGuardandoEdicion(false);
+    }
+  };
+
   // Cambiar estado
   const guardarEstado = async () => {
     if (!envioEditarEstado || !nuevoEstado) return;
@@ -156,6 +229,7 @@ export default function EnviosPage() {
       setGuardandoEstado(false);
     }
   };
+
   // Eliminar
   const confirmarEliminar = async () => {
     if (!envioParaEliminar) return;
@@ -171,6 +245,7 @@ export default function EnviosPage() {
       setEliminando(false);
     }
   };
+
   return (
     <div className="space-y-10">
       {/* Header */}
@@ -376,6 +451,14 @@ export default function EnviosPage() {
                       <td className="px-4 py-3 text-right pr-6 rounded-r-lg">
                         <div className="flex items-center justify-end gap-2">
                           <button
+                            className="p-1.5 text-on-surface-variant hover:text-secondary transition-colors cursor-pointer"
+                            onClick={() => abrirModalEditar(envio)}
+                          >
+                            <span className="material-symbols-outlined text-lg">
+                              edit
+                            </span>
+                          </button>
+                          <button
                             className="p-1.5 text-on-surface-variant hover:text-error transition-colors cursor-pointer"
                             onClick={() => setEnvioParaEliminar(envio)}
                           >
@@ -518,6 +601,114 @@ export default function EnviosPage() {
             </button>
           </div>
         </form>
+      </Modal>
+      {/* Modal Editar Envío */}
+      <Modal
+        open={!!envioEditar}
+        onClose={cerrarModalEditar}
+        title="Editar envío"
+        subtitle={envioEditar ? `Envío ${envioEditar.codigo_seguimiento}` : ""}
+      >
+        <div className="px-6 py-6 space-y-5">
+          <div className="space-y-2">
+            <label
+              className="text-[11px] font-bold uppercase tracking-wider text-on-surface-variant"
+              htmlFor="edit-direccion"
+            >
+              Dirección de Entrega
+            </label>
+            <input
+              className="w-full rounded-lg bg-surface-container-low px-4 py-3 text-sm text-on-surface outline-none ring-1 ring-transparent transition focus:ring-2 focus:ring-secondary"
+              id="edit-direccion"
+              onChange={(e) => setEditDireccion(e.target.value)}
+              placeholder="Ej: Av. Principal 123"
+              type="text"
+              value={editDireccion}
+            />
+          </div>
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+            <div className="space-y-2">
+              <label
+                className="text-[11px] font-bold uppercase tracking-wider text-on-surface-variant"
+                htmlFor="edit-comuna"
+              >
+                Comuna
+              </label>
+              <input
+                className="w-full rounded-lg bg-surface-container-low px-4 py-3 text-sm text-on-surface outline-none ring-1 ring-transparent transition focus:ring-2 focus:ring-secondary"
+                id="edit-comuna"
+                onChange={(e) => setEditComuna(e.target.value)}
+                placeholder="Ej: Providencia"
+                type="text"
+                value={editComuna}
+              />
+            </div>
+            <div className="space-y-2">
+              <label
+                className="text-[11px] font-bold uppercase tracking-wider text-on-surface-variant"
+                htmlFor="edit-ciudad"
+              >
+                Ciudad
+              </label>
+              <input
+                className="w-full rounded-lg bg-surface-container-low px-4 py-3 text-sm text-on-surface outline-none ring-1 ring-transparent transition focus:ring-2 focus:ring-secondary"
+                id="edit-ciudad"
+                onChange={(e) => setEditCiudad(e.target.value)}
+                placeholder="Ej: Santiago"
+                type="text"
+                value={editCiudad}
+              />
+            </div>
+          </div>
+          <div className="space-y-2">
+            <label
+              className="text-[11px] font-bold uppercase tracking-wider text-on-surface-variant"
+              htmlFor="edit-transportista"
+            >
+              Transportista
+            </label>
+            <input
+              className="w-full rounded-lg bg-surface-container-low px-4 py-3 text-sm text-on-surface outline-none ring-1 ring-transparent transition focus:ring-2 focus:ring-secondary"
+              id="edit-transportista"
+              onChange={(e) => setEditTransportista(e.target.value)}
+              placeholder="Ej: Starken"
+              type="text"
+              value={editTransportista}
+            />
+          </div>
+          {errorEdicion && (
+            <div className="rounded-lg bg-error-container px-4 py-3 text-xs font-semibold text-on-error-container">
+              {errorEdicion}
+            </div>
+          )}
+          <div className="flex flex-col-reverse gap-3 pt-2 sm:flex-row sm:justify-end">
+            <button
+              className="rounded-lg px-5 py-2.5 text-sm font-bold text-on-surface-variant transition-colors hover:bg-surface-container-low disabled:cursor-not-allowed disabled:opacity-60"
+              disabled={guardandoEdicion}
+              onClick={cerrarModalEditar}
+              type="button"
+            >
+              Cancelar
+            </button>
+            <button
+              className="flex items-center justify-center gap-2 rounded-lg bg-secondary px-5 py-2.5 text-sm font-bold text-white shadow-lg shadow-secondary/20 transition-all hover:opacity-90 active:scale-95 disabled:cursor-not-allowed disabled:opacity-60"
+              disabled={guardandoEdicion}
+              onClick={guardarEdicionEnvio}
+              type="button"
+            >
+              {guardandoEdicion ? (
+                <span className="material-symbols-outlined text-lg animate-spin">
+                  progress_activity
+                </span>
+              ) : (
+                <span className="material-symbols-outlined text-lg">
+                  edit_note
+                </span>
+              )}
+              Guardar cambios
+            </button>
+          </div>
+        </div>
       </Modal>
       {/* Modal Cambiar Estado */}
       <Modal

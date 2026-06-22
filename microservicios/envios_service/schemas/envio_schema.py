@@ -16,6 +16,13 @@ class EnvioCreate(BaseModel):
 class EstadoEnvioUpdate(BaseModel):
     estado: str
 
+
+class EnvioUpdate(BaseModel):
+    direccion_entrega: str = Field(min_length=5, max_length=150)
+    comuna: str = Field(min_length=2, max_length=80)
+    ciudad: str = Field(min_length=2, max_length=80)
+    transportista: Optional[str] = None
+
 #============================
 # Salida
 #============================
