@@ -9,6 +9,7 @@ import {
   type Pedido,
   type PedidoCreate,
 } from "../api/pedidos";
+import { getProductos, type Producto } from "../api/inventario";
 
 const estadoConfig: Record<string, { label: string; classes: string }> = {
   pendiente_stock: {
@@ -57,6 +58,7 @@ export default function PedidosPage() {
   const [nuevoDireccion, setNuevoDireccion] = useState("");
   const [nuevoComuna, setNuevoComuna] = useState("");
   const [nuevoCiudad, setNuevoCiudad] = useState("");
+  const [productos, setProductos] = useState<Producto[]>([]);
   // Estado
   const [pedidoEditarEstado, setPedidoEditarEstado] = useState<Pedido | null>(
     null,
@@ -120,6 +122,17 @@ export default function PedidosPage() {
       )
     : pedidos;
 
+  // Abrir modal y cargar productos
+  const abrirModalCrear = async () => {
+    setModalCrearAbierto(true);
+    try {
+      const lista = await getProductos();
+      setProductos(lista);
+    } catch {
+      console.error("No se pudieron cargar los productos");
+    }
+  };
+
   // Crear pedido
   const cerrarModalCrear = () => {
     if (guardando) return;
@@ -152,11 +165,8 @@ export default function PedidosPage() {
       setErrorCrear("El ID del cliente es obligatorio.");
       return;
     }
-    if (
-      !datos.productos[0].producto_id ||
-      Number.isNaN(datos.productos[0].producto_id)
-    ) {
-      setErrorCrear("El ID del producto es obligatorio.");
+    if (!datos.productos[0].producto_id) {
+      setErrorCrear("Debes seleccionar un producto.");
       return;
     }
     if (
@@ -317,7 +327,7 @@ export default function PedidosPage() {
           </div>
           <button
             className="w-full md:w-auto flex items-center justify-center gap-2 px-6 py-2.5 bg-secondary text-white rounded-xl text-sm font-bold shadow-lg shadow-secondary/20 hover:opacity-90 transition-all active:scale-95 cursor-pointer"
-            onClick={() => setModalCrearAbierto(true)}
+            onClick={abrirModalCrear}
           >
             <span className="material-symbols-outlined text-sm">add</span>
             Nuevo Pedido
@@ -447,18 +457,21 @@ export default function PedidosPage() {
                 className="text-[11px] font-bold uppercase tracking-wider text-on-surface-variant"
                 htmlFor="pedido-producto"
               >
-                ID del Producto
+                Producto
               </label>
-              <input
-                className="w-full rounded-lg bg-surface-container-low px-4 py-3 text-sm text-on-surface outline-none ring-1 ring-transparent transition focus:ring-2 focus:ring-secondary"
+              <select
+                className="w-full rounded-lg bg-surface-container-low px-4 py-3 text-sm text-on-surface outline-none ring-1 ring-transparent transition focus:ring-2 focus:ring-secondary cursor-pointer"
                 id="pedido-producto"
-                min="1"
                 onChange={(e) => setNuevoProductoId(e.target.value)}
-                placeholder="Ej: 1"
-                required
-                type="number"
                 value={nuevoProductoId}
-              />
+              >
+                <option value="">Selecciona un producto</option>
+                {productos.map((p) => (
+                  <option key={p.id} value={p.id}>
+                    {p.nombre} — Stock: {p.stock} — ${p.precio}
+                  </option>
+                ))}
+              </select>
             </div>
             <div className="space-y-2">
               <label
